@@ -68,8 +68,8 @@ def setMousePosition(x, y):
 
 def create_placeholder_windows(i3_inst, workspace_ids):
     create_placeholder_cmd = ""
-    for workspace_name in workspace_ids:
-        class_name = f"empty_workspace_{workspace_name}"
+    for workspace_id in workspace_ids:
+        class_name = f"empty_workspace_{workspace_id}"
         create_placeholder_cmd += f"exec --no-startup-id i3-sensible-terminal --name '{class_name}'; "
         i3.spawned_placeholders.append(class_name)
 
@@ -99,9 +99,9 @@ def kill_global_workspace(i3_inst, workspace_ids):
 def focus_workspaces(i3_inst, workspace_ids, focused_workspace, focus_last):
     # No need to refocus the workspace that triggered the WORKSPACE_FOCUS event, we just need to hide the placeholder
     focus_workspace_cmd = f'[instance="empty_workspace_{focused_workspace}$"] move to scratchpad; '
-    for workspace_name in workspace_ids:
-        if workspace_name != focus_last and workspace_name != focused_workspace:
-            focus_workspace_cmd += f'workspace {workspace_name}; [instance="empty_workspace_{workspace_name}$"] move to scratchpad; '
+    for workspace_id in workspace_ids:
+        if workspace_id != focus_last and workspace_id != focused_workspace:
+            focus_workspace_cmd += f'workspace {workspace_id}; [instance="empty_workspace_{workspace_id}$"] move to scratchpad; '
 
     # Focus last the workspace on the same monitor
     focus_workspace_cmd += f'workspace {focus_last}; [instance="empty_workspace_{focus_last}$"] move to scratchpad; '
