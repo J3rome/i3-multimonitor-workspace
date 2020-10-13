@@ -76,17 +76,19 @@ def create_placeholder_windows(i3_inst, workspace_ids):
     i3_inst.command(create_placeholder_cmd)
 
 
+def clear_all_placeholders(i3_inst):
+    i3_inst.command('[instance="empty_workspace"] kill')
+
+
 def show_placeholder_windows(i3_inst, workspace_ids):
     show_placeholders_cmd = ""
     for workspace_id in workspace_ids:
         show_placeholders_cmd += f'[instance="empty_workspace_{workspace_id}$"] move to workspace {workspace_id}; '
 
-    #print(f">>> Showing placeholders in old workspace : {show_placeholders_cmd}")
     i3_inst.command(show_placeholders_cmd)
 
 
 def kill_global_workspace(i3_inst, workspace_ids):
-    # Kill all placeholders
     kill_placeholders_cmd = ""
     for workspace_id in workspace_ids:
         kill_placeholders_cmd += f'[instance="empty_workspace_{workspace_id}$"] kill;'
@@ -98,7 +100,6 @@ def focus_workspaces(i3_inst, workspace_ids, focused_workspace, focus_last):
     # No need to refocus the workspace that triggered the WORKSPACE_FOCUS event, we just need to hide the placeholder
     focus_workspace_cmd = f'[instance="empty_workspace_{focused_workspace}$"] move to scratchpad; '
     for workspace_name in workspace_ids:
-        # FIXME : The loop is kinda useless in a 3 monitor setup..
         if workspace_name != focus_last and workspace_name != focused_workspace:
             focus_workspace_cmd += f'workspace {workspace_name}; [instance="empty_workspace_{workspace_name}$"] move to scratchpad; '
 
@@ -113,26 +114,23 @@ def on_workspace_focus(i3_inst, event):
     to_workspace = event.current.name
     changing_global_workspace = i3.current_workspace != to_workspace[-1]
 
-    # Ignore focus from scratchpad
     if 'i3_scratch' in from_workspace:
+        # Ignore focus from scratchpad
         return
 
     if changing_global_workspace:
-        print(f"----- To {to_workspace[-1]}")
         # Keep track of the time delay between global workspace changes
 
         now = datetime.now()
         i3_inst.workspace_change_timestamps.append(now)
         i3_inst.workspace_change_timestamps = [t for t in i3_inst.workspace_change_timestamps if now - t < i3_inst.one_sec_timedelta]
         
-        #update_workspace_change_timediff(i3_inst)
 
-        # FIXME : The threshold is highly correlated with computer usage... If the computer is under heavy load, the mean time might be different
+        # FIXME : The threshold is highly correlated with computer usage... 
+        #         If the computer is under heavy load, we can still be stuck in an event loop with an acceptable nb_change_per_second
         if len(i3_inst.workspace_change_timestamps) >= i3_inst.workspace_max_nb_change_per_second:
             # Change happened too fast (Might be stuck in a loop)
             # Hide all empty workspace screen & prevent further actions
-            print("TOO FAST")
-            print(len(i3_inst.workspace_change_timestamps))
             i3_inst.command('[instance="empty_workspace"] move to scratchpad')
             return 
 
@@ -142,44 +140,38 @@ def on_workspace_focus(i3_inst, event):
         # Retrieve global workspace id
         new_global_workspace_id = to_workspace[-1]
         old_global_workspace_id = from_workspace[-1]
-
         i3.current_workspace = new_global_workspace_id
 
+        # Define which monitor should be focused (We want to keep focus on the same monitor)
         same_monitor_target_workspace = f"{from_workspace[0]}{new_global_workspace_id}" if len(from_workspace) == 2 else f"{new_global_workspace_id}"
 
+        # Individual workspace ids
         new_workspace_child_ids = [f"{i}{new_global_workspace_id}" if i > 0 else f"{new_global_workspace_id}" for i in range(i3_inst.nb_monitor)]
         old_workspace_child_ids = [f"{i}{old_global_workspace_id}" if i > 0 else f"{old_global_workspace_id}" for i in range(i3_inst.nb_monitor)]
 
+        # Check if the old global workspace is empty
         existing_workspaces = i3_inst.get_tree().workspaces()
         old_global_workspaces = [w for w in existing_workspaces if w.name in old_workspace_child_ids]
         old_empty_workspaces = [w for w in old_global_workspaces if len(w.descendants()) == 0]
 
         # If all old workspaces are empty
         if len(old_global_workspaces) == len(old_empty_workspaces):
-            print(f"Killing {old_workspace_child_ids}")
             kill_global_workspace(i3_inst, old_workspace_child_ids)
         
         # If the placeholder windows exists, show them
         elif f'empty_workspace_{old_workspace_child_ids[0]}' in i3_inst.spawned_placeholders:
-            print(f"Showing placeholders on {old_workspace_child_ids}")
             show_placeholder_windows(i3_inst, old_workspace_child_ids)
 
         # Create placeholder windows (If not already spawned)
         if f'empty_workspace_{new_workspace_child_ids[0]}' not in i3_inst.spawned_placeholders:
-            print(f"Creating placeholders {new_workspace_child_ids}")
             create_placeholder_windows(i3_inst, new_workspace_child_ids)
 
-        print(f"Focusing {new_workspace_child_ids}")    
         # Focus all workspaces belonging to the global workspace
         focus_workspaces(i3_inst, new_workspace_child_ids, focused_workspace=to_workspace, 
                          focus_last=same_monitor_target_workspace)
 
         # Reset mouse position
         setMousePosition(initial_mouse_position[0], initial_mouse_position[1])
-
-
-def clear_all_placeholders(i3_inst):
-    i3_inst.command('[instance="empty_workspace"] kill')
 
 
 def clean_exit(i3_inst):
