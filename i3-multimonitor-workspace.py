@@ -29,6 +29,8 @@ from datetime import timedelta
 
 from i3ipc import Connection, Event
 
+# TODO : Add support/test named workspaces
+
 # TODO : Add function to enable/disable on the fly
 
 # TODO : Moving a window to a monitor (Mod+Shift+Nb) should send the window to the same monitor
@@ -63,7 +65,7 @@ def create_placeholder_windows(i3_inst, workspace_ids):
     for workspace_id in workspace_ids:
         class_name = f"empty_workspace_{workspace_id}"
         create_placeholder_cmd += f"exec --no-startup-id i3-sensible-terminal --name '{class_name}'; "
-        i3.spawned_placeholders.append(class_name)
+        i3_inst.spawned_placeholders.append(class_name)
 
     i3_inst.command(create_placeholder_cmd)
 
@@ -83,7 +85,9 @@ def show_placeholder_windows(i3_inst, workspace_ids):
 def kill_global_workspace(i3_inst, workspace_ids):
     kill_placeholders_cmd = ""
     for workspace_id in workspace_ids:
-        kill_placeholders_cmd += f'[instance="empty_workspace_{workspace_id}$"] kill;'
+        class_name = f'empty_workspace_{workspace_id}'
+        kill_placeholders_cmd += f'[instance="{class_name}$"] kill;'
+        i3_inst.spawned_placeholders.remove(class_name)
 
     i3_inst.command(kill_placeholders_cmd)
 
@@ -103,7 +107,7 @@ def focus_workspaces(i3_inst, workspace_ids, focused_workspace, focus_last):
 def on_workspace_focus(i3_inst, event):
     from_workspace = event.old.name
     to_workspace = event.current.name
-    changing_global_workspace = i3.current_workspace != to_workspace[-1]
+    changing_global_workspace = i3_inst.current_workspace != to_workspace[-1]
 
 
     if 'i3_scratch' in from_workspace:
@@ -121,7 +125,7 @@ def on_workspace_focus(i3_inst, event):
         # Retrieve global workspace id
         new_global_workspace_id = to_workspace[-1]
         old_global_workspace_id = from_workspace[-1]
-        i3.current_workspace = new_global_workspace_id
+        i3_inst.current_workspace = new_global_workspace_id
 
         # Define which monitor should be focused (We want to keep focus on the same monitor)
         same_monitor_target_workspace = f"{from_workspace[0]}{new_global_workspace_id}" if len(from_workspace) == 2 else f"{new_global_workspace_id}"

@@ -14,6 +14,7 @@
 * Do some tests with 2 and 4+ monitors
 * Create script that generate i3 config lines
 * Test with named workspaces
+* Create python package ?
 
 ## Known Issues
 * When changing global workspace from an empty workspace, the workspace identifier disappear for short time which cause jittering in the status bar.
