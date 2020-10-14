@@ -7,10 +7,12 @@
 * Add setup instructions
 * Add mention that this won't run if you only have 1 monitor (Will not stop if monitors are disconnected tho)
 * Add mention that no special keybindings are required,
-	** Required linux packages
-	** .bashrc modifications
-	** i3 config modifications
+	* Required linux packages
+	* .bashrc modifications
+	* i3 config modifications
 * Do some tests with 2 and 4+ monitors
+* Create script that generate i3 config lines
+* Test with named workspaces
 
 ## Known Issues
 * When changing global workspace from an empty workspace, the workspace identifier disappear for short time which cause jittering in the status bar.
