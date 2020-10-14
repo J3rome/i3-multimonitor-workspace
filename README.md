@@ -23,5 +23,8 @@
 
 
 ## More infos
+```
 Tested on Ubuntu 18.04 with Python 3.6.9 and a 3 monitor setup
-i3 version 4.16.1-175-gac795ae3 (2019-05-03, branch "gaps-next") © 2009 Michael Stapelberg and contributors
+i3 version 4.16.1-175-gac795ae3 (2019-05-03, branch "gaps-next") 
+© 2009 Michael Stapelberg and contributors
+```
