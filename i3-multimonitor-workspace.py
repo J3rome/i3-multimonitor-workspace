@@ -163,9 +163,16 @@ def on_workspace_focus(i3_inst, event):
         threading.Timer(0.05, i3_inst.focus_lock.release).start()
 
 
-def clean_exit(i3_inst):
-    clear_all_placeholders(i3_inst)
-    exit(0)
+def setup_exit_signal_handling(i3_inst):
+    signals_of_interest = [signal.SIGHUP, signal.SIGINT, signal.SIGQUIT, signal.SIGTERM, signal.SIGFPE, signal.SIGILL,
+                           signal.SIGSEGV, signal.SIGABRT,  signal.SIGBUS, signal.SIGSYS, signal.SIGTSTP] #signal.SIGSTOP
+
+    def clean_exit(the_i3_inst):
+        clear_all_placeholders(the_i3_inst)
+        exit(0)
+
+    for sig in signals_of_interest:
+        signal.signal(sig, lambda x,y: clean_exit(i3_inst))
 
 
 if __name__ == "__main__":
@@ -197,9 +204,7 @@ if __name__ == "__main__":
     clear_all_placeholders(i3)
 
     # Clean exit handling (will kill placeholders on exit)
-    catchable_sigs = set(signal.Signals) - {signal.SIGKILL, signal.SIGSTOP, signal.SIGCHLD}
-    for sig in catchable_sigs:
-        signal.signal(sig, lambda x,y: clean_exit(i3))
+    setup_exit_signal_handling(i3)
 
     # Setup i3 event handlers
     i3.on(Event.WORKSPACE_FOCUS, on_workspace_focus)
