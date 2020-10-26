@@ -6,6 +6,8 @@
 ##  License : GNU General Public License v3        ##
 #####################################################
 
+# TODO : More stuff need to be added to i3 config, simply refer to README ?
+
 ####################################################################################
 # To prevent windows showing for a couple of milliseconds when changing workspace,
 # Add the following lines to your .bashrc file (Linux package 'wmctrl' required !) :
@@ -30,6 +32,7 @@ from datetime import timedelta
 
 from i3ipc import Connection, Event
 
+# TODO : Define a way to have named workspace at start (from config) but still keep the workspace 
 # FIXME : When changing 2 workspaces too fast, doesn't work, the other workspaces are not changed
 # TODO : Use "hide_workspace_number" and use the "1: workspace name" for all monitor (Instead of 1: .. 11:.. 21:...) The numbers associated with the workspace should stay the same
 # TODO : Do some argument parsing to provide actions via this script
@@ -64,6 +67,8 @@ parser.add_argument("--hide_workspace_number", help="Will hide the workspace num
 parser.add_argument("--dont_rewrite_workspace_number", help="Will use the individual workspace id instead of the global id", 
                     action="store_true")
 
+
+# Mouse handling
 def getMousePosition():
     raw_out = subprocess.check_output('xdotool getmouselocation'.split(' ')).decode()
     x_y = raw_out.split(' screen')[0].split(' y:')
@@ -77,6 +82,7 @@ def setMousePosition(x, y):
     subprocess.check_output(f'xdotool mousemove {x} {y}'.split(' '))
 
 
+# Placeholder windows handling
 def create_placeholder_windows(i3_inst, workspace_ids):
     create_placeholder_cmd = ""
     for workspace_id in workspace_ids:
@@ -99,6 +105,7 @@ def show_placeholder_windows(i3_inst, workspace_ids):
     i3_inst.command(show_placeholders_cmd)
 
 
+# Workspace handling (killing/focusing)
 def kill_global_workspace(i3_inst, workspace_ids):
     kill_placeholders_cmd = ""
     for workspace_id in workspace_ids:
@@ -121,6 +128,8 @@ def focus_workspaces(i3_inst, workspace_ids, focused_workspace, focus_last):
 
     i3_inst.command(focus_workspace_cmd)
 
+
+# Focus event handler
 def on_workspace_focus(i3_inst, event):
     from_workspace = event.old.name
     from_workspace_id = from_workspace.split(':')[0]
