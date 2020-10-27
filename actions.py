@@ -37,9 +37,9 @@ def rename_current_workspace(i3_inst):
             if workspace_selector[0] != '"':
                 workspace_selector = '"' + workspace_selector
 
-        rename_to = f'"{workspace_id}:{global_workspace_id}' if i3_inst.show_workspace_numbers else workspace_id
+        rename_to = f'"{workspace_id}:{global_workspace_id}' if i3_inst.rewrite_workspace_names else workspace_id
         rename_to += f":{new_name}" if len(new_name) > 0 else ""
-        if i3_inst.show_workspace_numbers:
+        if i3_inst.rewrite_workspace_names:
             rename_to += '"'
 
         rename_cmd += f'rename workspace {workspace_selector} to {rename_to};' # FIXME : Why does 'rename workspace number X to YYY' doesn't work ?
@@ -77,7 +77,7 @@ def rewrite_workspace_names(i3_inst, workspace_names):
 
         nb_separator = workspace_name.count(':')
 
-        if nb_separator == 0 and i3_inst.rewrite_workspace_numbers:
+        if nb_separator == 0 and i3_inst.rewrite_workspace_names:
             # No global id or custom name in workspace
             global_workspace_id = workspace_name[-1]
             rewrite_workspace_cmd += f'rename workspace {workspace_name} to "{workspace_name}:{global_workspace_id}" ; '
@@ -87,13 +87,11 @@ def rewrite_workspace_names(i3_inst, workspace_names):
             splitted_name = workspace_name.split(":")
             global_workspace_id = splitted_name[0][-1]
 
-            if splitted_name[-1] != global_workspace_id and i3_inst.rewrite_workspace_numbers:
-                # The text after the ':' correspond to a workspace name. Need to add the global_id
-                rewrite_workspace_cmd += f'rename workspace "{workspace_name}" to "{splitted_name[0]}:{global_workspace_id}:{splitted_name[-1]}" ; '
-            elif not i3_inst.rewrite_workspace_numbers:
-                rewrite_workspace_cmd += f'rename workspace "{workspace_name}" to {splitted_name[0]}; '
+            if splitted_name[-1] != global_workspace_id and i3_inst.rewrite_workspace_names:
+                    # The text after the ':' correspond to a workspace name. Need to add the global_id
+                    rewrite_workspace_cmd += f'rename workspace "{workspace_name}" to "{splitted_name[0]}:{global_workspace_id}:{splitted_name[-1]}" ; '
 
-        elif nb_separator == 2 and not i3_inst.rewrite_workspace_numbers:
+        elif nb_separator == 2 and not i3_inst.rewrite_workspace_names:
             # We got a global id & a custom name. Remove the global_id
             splitted_name = workspace_name.split(":")
 

@@ -56,8 +56,6 @@ parser = argparse.ArgumentParser('i3 Multi Monitor workspace manager')
 parser.add_argument("--rename", help="Will rename all workspaces in global workspace (From dmenu input)", 
                     action="store_true")
 
-parser.add_argument("--hide_workspace_number", help="Will hide the workspace number in status bar", 
-                    action="store_true")
 parser.add_argument("--dont_rewrite_workspace_number", help="Will use the individual workspace id instead of the global id", 
                     action="store_true")
 
@@ -161,7 +159,7 @@ def on_workspace_focus(i3_inst, event):
         focus_workspaces(i3_inst, new_workspace_child_ids, focused_workspace=to_workspace_id, 
                          focus_last=same_monitor_target_workspace)
 
-        if i3_inst.rewrite_workspace_numbers and len(new_workspace_existing_childs) < i3_inst.nb_monitor:
+        if i3_inst.rewrite_workspace_names and len(new_workspace_existing_childs) < i3_inst.nb_monitor:
             # Workspaces are being created, rewrite the workspaces names so they show the have the same name
             rewrite_workspace_names(i3_inst, new_workspace_child_ids)
 
@@ -197,14 +195,14 @@ if __name__ == "__main__":
     # FIXME : Are both these options really needed/wired ?
     # TODO : Set those to False if the config doesn't permit strip_workspace_numbers
     i3.show_workspace_numbers = not args.hide_workspace_number
-    i3.rewrite_workspace_numbers = not args.dont_rewrite_workspace_number and i3.show_workspace_numbers
+    i3.rewrite_workspace_names = not args.dont_rewrite_workspace_number
 
     if args.rename:
         rename_current_workspace(i3)
         exit(0)
 
     # Multi Monitor workspace daemon
-    if i3.rewrite_workspace_numbers:
+    if i3.rewrite_workspace_names:
         all_workspace_names = [w.name for w in i3.get_tree().workspaces() if 'i3_scratch' not in w.name]
         rewrite_workspace_names(i3, all_workspace_names)
 
