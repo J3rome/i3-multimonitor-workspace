@@ -150,6 +150,11 @@ def on_workspace_focus(i3_inst, event):
         elif f'empty_workspace_{old_workspace_child_ids[0]}' in i3_inst.spawned_placeholders:
             show_placeholder_windows(i3_inst, old_workspace_child_ids)
 
+            # FIXME : When this condition is true, the number in the workspace bar disappear and reappear...
+            if i3_inst.rewrite_workspace_names and from_workspace.count(":") > 0 and len(event.old.descendants()) == 0:
+                # The previous workspace got deleted, we need to rename it again
+                i3_inst.command(f'rename workspace {from_workspace_id} to "{from_workspace}"')
+
         # If placeholders windows for the new workspace are not spawned, create them
         if f'empty_workspace_{new_workspace_child_ids[0]}' not in i3_inst.spawned_placeholders:
             create_placeholder_windows(i3_inst, new_workspace_child_ids)
