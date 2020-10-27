@@ -194,7 +194,6 @@ if __name__ == "__main__":
 
     # FIXME : Are both these options really needed/wired ?
     # TODO : Set those to False if the config doesn't permit strip_workspace_numbers
-    i3.show_workspace_numbers = not args.hide_workspace_number
     i3.rewrite_workspace_names = not args.dont_rewrite_workspace_number
 
     if args.rename:
