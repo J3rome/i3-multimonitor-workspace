@@ -22,7 +22,7 @@ def rename_current_workspace(i3_inst):
         focused_workspace_name_global_id = splitted_workspace_name[1]
         focused_workspace_custom_name = ":".join(splitted_workspace_name[2:])
 
-    new_name = dmenu_prompt("Rename current workspace to :", splitted_workspace_name[-1])
+    new_name = dmenu_prompt("Rename current workspace to :")
 
     rename_cmd = ""
     for workspace_id in workspace_ids:
@@ -44,13 +44,12 @@ def rename_current_workspace(i3_inst):
 
         rename_cmd += f'rename workspace {workspace_selector} to {rename_to};' # FIXME : Why does 'rename workspace number X to YYY' doesn't work ?
 
-        # FIXME : For some reason, we lose focus to certain workspaces when we call dmenu (We don't get a focused event tho)
+        # FIXME : For some reason, we lose focus to certain workspaces when we call dmenu (We don't get a focused event tho) -- MIGHT NOT BE RELATED TO DMENU, might be just renaming...
         #         Clicking on another monitor will result in changing to a different workspace (As if the clicked monitor belong to another global workspace)
         #         We refocus the workspaces
         if workspace_id != focused_workspace_id:
             rename_cmd += f" workspace number {workspace_id}; "
 
-    # FIXME : Is the mouse jittering ? Might need to save and reset mouse
     # Focus the previously focused workspace last
     rename_cmd += f" workspace number {focused_workspace_id}; "
 
@@ -68,14 +67,14 @@ def rename_current_workspace(i3_inst):
 #                              grep -o "strip_workspace_numbers yes" $(i3 --more-version | grep -oP "Loaded i3 config: \K([\S\/]*)")
 
 
-def rewrite_workspace_names(i3_inst, workspace_names):
+def rewrite_workspace_names(i3_inst, workspace_names, focus_last):
     rewrite_workspace_cmd = ""
     for workspace_name in workspace_names:
 
         #rewrite_workspace_cmd += f'rename workspace "{workspace_name}" to {workspace_name.split(":")[0]}; '
         #continue
-
-        nb_separator = workspace_name.count(':')
+        splitted_name = workspace_name.split(":")
+        nb_separator = len(splitted_name) - 1
 
         if nb_separator == 0 and i3_inst.rewrite_workspace_names:
             # No global id or custom name in workspace
@@ -84,7 +83,6 @@ def rewrite_workspace_names(i3_inst, workspace_names):
 
         elif nb_separator == 1:
             # Got either a global id or a custom name in workspace name
-            splitted_name = workspace_name.split(":")
             global_workspace_id = splitted_name[0][-1]
 
             if splitted_name[-1] != global_workspace_id and i3_inst.rewrite_workspace_names:
@@ -93,9 +91,13 @@ def rewrite_workspace_names(i3_inst, workspace_names):
 
         elif nb_separator == 2 and not i3_inst.rewrite_workspace_names:
             # We got a global id & a custom name. Remove the global_id
-            splitted_name = workspace_name.split(":")
-
             rewrite_workspace_cmd += f'rename workspace "{workspace_name}" to "{splitted_name[0]}:{splitted_name[-1]}" ; '
 
-        # TODO : Focus back current workspace ?
+    global_id = focus_last[-1]
+    workspaces_to_focus = {f"{i}{global_id}" if i > 0 else f"{global_id}" for i in range(i3_inst.nb_monitor)} - {focus_last}
+
+    for workspace_id in workspaces_to_focus:
+        rewrite_workspace_cmd += f'workspace number {workspace_id} ; '
+    rewrite_workspace_cmd += f'workspace number {focus_last} ; '
+
     i3_inst.command(rewrite_workspace_cmd)

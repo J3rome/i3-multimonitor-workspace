@@ -109,7 +109,7 @@ def on_workspace_focus(i3_inst, event):
     from_workspace_id = from_workspace.split(':')[0]
     to_workspace = event.current.name
     to_workspace_id = to_workspace.split(":")[0]
-    changing_global_workspace = i3_inst.current_workspace_id != to_workspace_id[-1]
+    changing_global_workspace = i3_inst.current_global_workspace_id != to_workspace_id[-1]
 
 
     if 'i3_scratch' in from_workspace:
@@ -127,7 +127,7 @@ def on_workspace_focus(i3_inst, event):
         # Retrieve global workspace id
         new_global_workspace_id = to_workspace_id[-1]
         old_global_workspace_id = from_workspace_id[-1]
-        i3_inst.current_workspace_id = new_global_workspace_id
+        i3_inst.current_global_workspace_id = new_global_workspace_id
 
         # Define which monitor should be focused (We want to keep focus on the same monitor)
         same_monitor_target_workspace = f"{from_workspace[0]}{new_global_workspace_id}" if len(from_workspace_id) == 2 else f"{new_global_workspace_id}"
@@ -167,6 +167,7 @@ def on_workspace_focus(i3_inst, event):
         if i3_inst.rewrite_workspace_names and len(new_workspace_existing_childs) < i3_inst.nb_monitor:
             # Workspaces are being created, rewrite the workspaces names so they show the have the same name
             rewrite_workspace_names(i3_inst, new_workspace_child_ids)
+            rewrite_workspace_names(i3_inst, new_workspace_child_ids, focus_last=same_monitor_target_workspace)
 
         # Reset mouse position
         set_mouse_position(initial_mouse_position[0], initial_mouse_position[1])
@@ -188,8 +189,8 @@ if __name__ == "__main__":
         exit(0)
 
     # Set initial workspace
-    i3.current_workspace_name = i3.get_tree().find_focused().workspace().name
-    i3.current_workspace_id = i3.current_workspace_name.split(":")[0][-1]
+    current_workspace_name_splitted = i3.get_tree().find_focused().workspace().name.split(":")
+    i3.current_global_workspace_id = current_workspace_name_splitted[0][-1]
 
     # Keep track of spawned placeholders
     i3.spawned_placeholders = []
@@ -197,8 +198,7 @@ if __name__ == "__main__":
     # Lock to prevent multiple e
     i3.focus_lock = threading.Lock()
 
-    # FIXME : Are both these options really needed/wired ?
-    # TODO : Set those to False if the config doesn't permit strip_workspace_numbers
+    # TODO : Set this to False if the config doesn't permit strip_workspace_numbers
     i3.rewrite_workspace_names = not args.dont_rewrite_workspace_number
 
     if args.rename:
@@ -208,7 +208,7 @@ if __name__ == "__main__":
     # Multi Monitor workspace daemon
     if i3.rewrite_workspace_names:
         all_workspace_names = [w.name for w in i3.get_tree().workspaces() if 'i3_scratch' not in w.name]
-        rewrite_workspace_names(i3, all_workspace_names)
+        rewrite_workspace_names(i3, all_workspace_names, focus_last=current_workspace_name_splitted[0])
 
     # We make sure that no empty_workspace placeholders are left over from previous run 
     # (Can only happen if we receive SIGKILL or SIGSTOP, otherwise placeholders would have been killed on exit)
