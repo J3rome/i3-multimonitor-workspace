@@ -166,7 +166,6 @@ def on_workspace_focus(i3_inst, event):
 
         if i3_inst.rewrite_workspace_names and len(new_workspace_existing_childs) < i3_inst.nb_monitor:
             # Workspaces are being created, rewrite the workspaces names so they show the have the same name
-            rewrite_workspace_names(i3_inst, new_workspace_child_ids)
             rewrite_workspace_names(i3_inst, new_workspace_child_ids, focus_last=same_monitor_target_workspace)
 
         # Reset mouse position
