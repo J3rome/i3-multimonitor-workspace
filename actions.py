@@ -2,8 +2,7 @@ from misc import dmenu_prompt
 
 
 # Standalone actions
-def rename_current_workspace(i3_inst):
-    splitted_workspace_name = i3_inst.current_workspace_name.split(":")
+def rename_current_workspace(i3_inst, splitted_workspace_name):
     focused_workspace_id = splitted_workspace_name[0]
     global_workspace_id = focused_workspace_id[-1]
     workspace_ids = [f"{i}{global_workspace_id}" if i > 0 else f"{global_workspace_id}" for i in range(i3_inst.nb_monitor)]

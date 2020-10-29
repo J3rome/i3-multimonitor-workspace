@@ -202,7 +202,7 @@ if __name__ == "__main__":
     i3.rewrite_workspace_names = not args.dont_rewrite_workspace_number
 
     if args.rename:
-        rename_current_workspace(i3)
+        rename_current_workspace(i3, current_workspace_name_splitted)
         exit(0)
 
     # Multi Monitor workspace daemon
