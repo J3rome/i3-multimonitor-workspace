@@ -1,4 +1,20 @@
-from misc import dmenu_prompt
+from collections import defaultdict
+import os
+import threading
+
+# FIXME : Both rename function could probably be merged...
+
+def dmenu_prompt(prompt, default_val=""):
+    dmenu_cmd = f'echo "{default_val}" | dmenu -p "{prompt}"'
+    process = os.popen(dmenu_cmd)
+    user_input = process.read().strip()
+
+    if user_input == default_val:
+        # Nothing was entered in the dmenu input
+        user_input = ""
+    process.close()
+
+    return user_input
 
 
 # Standalone actions
@@ -53,6 +69,29 @@ def rename_current_workspace(i3_inst, splitted_workspace_name):
     rename_cmd += f" workspace number {focused_workspace_id}; "
 
     i3_inst.command(rename_cmd)
+
+
+def do_workspace_back_and_forth(i3_inst):
+    # FIXME : If we keep Alt+Tab pressed, the program become overloaded. 
+    #         Probably because it receive too many signals. We should put the lock on the signal sender
+    #         We could use a file as a lock
+    if not i3_inst.back_and_forth_lock.acquire(blocking=False):
+            return
+
+    if i3_inst.last_global_workspace_id != i3_inst.current_global_workspace_id:
+        focused_workspace_id = i3_inst.get_tree().find_focused().workspace().name.split(":")[0]
+        to_focus = f"{focused_workspace_id[0]}{i3_inst.last_global_workspace_id}" if len(focused_workspace_id) > 1 else i3_inst.last_global_workspace_id
+
+        i3_inst.command(f"workspace number {to_focus}")
+
+    threading.Timer(0.01, i3_inst.back_and_forth_lock.release).start()
+
+
+def move_current_container_to_workspace(i3_inst, to_workspace_global_id, current_workspace_name_splitted):
+    current_workspace_id = current_workspace_name_splitted[0]
+    move_to = to_workspace_global_id if len(current_workspace_id) == 1 else f'{current_workspace_id[0]}{to_workspace_global_id}'
+
+    i3_inst.command(f"move to workspace number {move_to}")
 
 
 # TODO : Check if strip_workspace_numbers yes is present in config

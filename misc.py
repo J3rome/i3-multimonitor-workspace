@@ -2,6 +2,8 @@ import os
 import subprocess
 import signal
 
+from actions import do_workspace_back_and_forth
+
 # TODO : either use os or subprocess..
 
 # Mouse handling
@@ -18,17 +20,39 @@ def set_mouse_position(x, y):
     subprocess.check_output(f'xdotool mousemove {x} {y}'.split(' '))
 
 
-def dmenu_prompt(prompt, default_val=""):
-    dmenu_cmd = f'echo "{default_val}" | dmenu -p "{prompt}"'
-    process = os.popen(dmenu_cmd)
-    user_input = process.read().strip()
+def get_pid_of_running_daemon():
+    # FIXME : This doesn't work if the daemon is launched with parameters.. But it help grepping out the --rename and --back_and_forth processes..
+    cmd = 'ps -x | grep " python.*i3-multimonitor-workspace.py$" | grep -v "/bin/sh" | awk \'{print $1}\''
 
-    if user_input == default_val:
-        # Nothing was entered in the dmenu input
-        user_input = ""
+    process = os.popen(cmd)
+    pid = process.read().strip()
     process.close()
 
-    return user_input
+    if len(pid) > 0:
+        return pid
+    
+    return None
+
+
+def set_back_and_forth_handler(i3_inst):
+    signal.signal(signal.SIGUSR1, lambda x,y: do_workspace_back_and_forth(i3_inst))
+
+
+def send_back_and_forth_signal_to_daemon(daemon_pid):
+    os.kill(int(daemon_pid), signal.SIGUSR1)
+
+
+def create_missing_workspaces(i3_inst, names_by_global_workspace, focused_id):
+    create_workspace_cmd = ""
+    for global_id in names_by_global_workspace.keys():
+        if global_id == focused_id[-1]:
+            continue
+
+        if len(names_by_global_workspace[global_id]) < i3.nb_monitor:
+            missing_workspaces = list({f"{i}{new_global_workspace_id}" if i > 0 else f"{new_global_workspace_id}" for i in range(i3_inst.nb_monitor)} - {n.split(":")[0] for n in names_by_global_workspace[global_id]})
+            for name in missing_workspaces:
+                create_workspace_cmd += f"workspace "
+
 
 
 def clear_all_placeholders(i3_inst):
