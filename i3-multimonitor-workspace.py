@@ -70,7 +70,7 @@ parser.add_argument("--back_and_forth", help="Will move back and forth between c
                     action="store_true")
 
 parser.add_argument("--move_to_workspace", help="Will the currently focused container to the provided workspace", 
-                    type=int, default=None)
+                    type=int, default=None, choices=range(0,11))
 
 parser.add_argument("--dont_rewrite_workspace_number", help="Will use the individual workspace id instead of the global id", 
                     action="store_true")
@@ -235,10 +235,9 @@ if __name__ == "__main__":
         send_back_and_forth_signal_to_daemon(running_daemon_pid)
         exit(0)
 
-    if args.move_to_workspace:
     # FIXME : This should work even if the daemon is not running & we only have 1 monitor because it is part of the config. 
     # We don't want the user to need to change a bunch of binding depending if he is using multiple monitor or not (Especially for laptop use case)
-    if args.move_to_workspace is not None and args.move_to_workspace < 10:
+    if args.move_to_workspace:
         move_current_container_to_workspace(i3, args.move_to_workspace, current_workspace_name_splitted)
         exit(0)
 
