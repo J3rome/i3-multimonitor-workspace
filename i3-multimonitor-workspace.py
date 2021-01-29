@@ -31,6 +31,10 @@ from actions import rename_current_workspace, rewrite_workspace_names, move_curr
 from misc import get_mouse_position, set_mouse_position, setup_exit_signal_handling, clear_all_placeholders
 from misc import get_pid_of_running_daemon, send_back_and_forth_signal_to_daemon, set_back_and_forth_handler
 
+# FIXME : Sometime when clicking on another workspace name in the status bar, the name of some workspace is lost...
+# FIXME : Keep track of workspace name in the daemon. This way if a workspace get killed and we pop it again, the name should stay there. Might be worth implementing using files for persistence. This way we don't loose renaming on reboot
+
+# FIXME : When clicking on another workspace in the status bar (In another workspace than the one focused), the wrong monitor get focused... Not sure how to distinguish between click tho..
 # FIXME : Need more testing but I don't think we need the mouse handling anymore
 # FIXME : If somehow a workspace get deleted and we recreate it, we should look at its brother workspaces names. If a custom name is set, set the same instead of just setting the global id as we do on a normal new workspace
 # FIXME : When switching 2 fast and the second workspace is empty, it might get erased
@@ -66,7 +70,7 @@ parser.add_argument("--back_and_forth", help="Will move back and forth between c
                     action="store_true")
 
 parser.add_argument("--move_to_workspace", help="Will the currently focused container to the provided workspace", 
-                    type=int)
+                    type=int, default=None)
 
 parser.add_argument("--dont_rewrite_workspace_number", help="Will use the individual workspace id instead of the global id", 
                     action="store_true")
@@ -178,7 +182,8 @@ def on_workspace_focus(i3_inst, event):
 
         if i3_inst.rewrite_workspace_names and len(new_workspace_existing_childs) < i3_inst.nb_monitor:
             # Workspaces are being created, rewrite the workspaces names so they show the have the same name
-            rewrite_workspace_names(i3_inst, new_workspace_child_ids, focus_last=same_monitor_target_workspace)
+            created_workspaces_id = list(set(new_workspace_child_ids) - {n.split(":")[0] for n in new_workspace_existing_childs})
+            rewrite_workspace_names(i3_inst, new_workspace_existing_childs + created_workspaces_id, focus_last=same_monitor_target_workspace)
 
         # Reset mouse position
         set_mouse_position(initial_mouse_position[0], initial_mouse_position[1])
@@ -200,7 +205,8 @@ if __name__ == "__main__":
         exit(0)
 
     # Set initial workspace
-    current_workspace_name_splitted = i3.get_tree().find_focused().workspace().name.split(":")
+    container_tree = i3.get_tree()
+    current_workspace_name_splitted = container_tree.find_focused().workspace().name.split(":")
     i3.current_global_workspace_id = current_workspace_name_splitted[0][-1]
     i3.last_global_workspace_id = i3.current_global_workspace_id
 
@@ -230,6 +236,9 @@ if __name__ == "__main__":
         exit(0)
 
     if args.move_to_workspace:
+    # FIXME : This should work even if the daemon is not running & we only have 1 monitor because it is part of the config. 
+    # We don't want the user to need to change a bunch of binding depending if he is using multiple monitor or not (Especially for laptop use case)
+    if args.move_to_workspace is not None and args.move_to_workspace < 10:
         move_current_container_to_workspace(i3, args.move_to_workspace, current_workspace_name_splitted)
         exit(0)
 
