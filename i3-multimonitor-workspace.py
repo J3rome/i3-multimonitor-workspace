@@ -28,10 +28,11 @@ import threading
 from i3ipc import Connection, Event
 
 from actions import rename_current_workspace, move_current_container_to_workspace
+from actions import do_workspace_back_and_forth, rename_current_workspace
 from ipc import create_placeholder_windows, show_placeholder_windows, focus_workspaces, kill_global_workspace, rewrite_workspace_names
 from misc import get_mouse_position, set_mouse_position, setup_exit_signal_handling, clear_all_placeholders
 from misc import get_pid_of_running_daemon, send_back_and_forth_signal_to_daemon, set_back_and_forth_handler
-from misc import set_rename_handler, send_rename_signal_to_daemon
+from misc import set_rename_handler, send_rename_signal_to_daemon, read_workspace_names_from_file
 
 # TODO : Add option to use other launcher (rofi, provide user cmd)
 # FIXME : Sometime when clicking on another workspace name in the status bar, the name of some workspace is lost...
@@ -99,12 +100,12 @@ def main(args):
     i3.current_global_workspace_id = current_workspace_name_splitted[0][-1]
     i3.last_global_workspace_id = i3.current_global_workspace_id
 
+    # Keep track of workspace names
+    i3.tmp_folder = args.tmp_folder
+    read_workspace_names_from_file(i3)
+
     # Keep track of spawned placeholders
     i3.spawned_placeholders = []
-
-    # Keep track of workspace names
-    # TODO : Load names from file
-    i3.global_workspace_names = {str(i):"" for i in range(0, 11)}
 
     # Lock to prevent multiple events cascade
     i3.focus_lock = threading.Lock()
@@ -114,7 +115,7 @@ def main(args):
     #   Standalone Actions
     # ======================
 
-    # Move focused container to another global workspace (Note: Works even if no daemon running)
+    # Move focused container to another global workspace (Note: Works even if no daemon running, useful for laptop)
     if args.move_to_workspace:
         move_current_container_to_workspace(i3, args.move_to_workspace, focused_child_id)
         exit(0)
@@ -135,6 +136,7 @@ def main(args):
         exit(0)
 
     # Alt-Tab like between global workspaces
+    # FIXME : This should also work even if the daemon is not running. Although, as it is implemented, won't be that straightforward
     if args.back_and_forth:
         send_back_and_forth_signal_to_daemon(running_daemon_pid)
         exit(0)
@@ -157,10 +159,10 @@ def main(args):
     focus_workspaces(i3, initial_child_ids, focus_last=focused_child_id)
 
     # Signal handler for workspace renaming
-    set_rename_handler(i3)
+    set_rename_handler(i3, rename_current_workspace)
 
     # Signal handler for workspace back and forth
-    set_back_and_forth_handler(i3)
+    set_back_and_forth_handler(i3, do_workspace_back_and_forth)
 
     # Clean exit handling (will kill placeholders on exit)
     setup_exit_signal_handling(i3)
@@ -200,9 +202,6 @@ def on_workspace_focus(i3_inst, event):
         # Keep track of last global workspace
         i3_inst.last_global_workspace_id = i3_inst.current_global_workspace_id
         i3_inst.current_global_workspace_id = new_global_workspace_id
-
-        # Define which monitor should be focused (We want to keep focus on the same monitor)
-        #same_monitor_target_workspace = f"{from_workspace[0]}{new_global_workspace_id}" if len(from_workspace_id) == 2 else f"{new_global_workspace_id}"
 
         # Individual workspace ids
         new_workspace_child_ids = [f"{i}{new_global_workspace_id}" if i > 0 else f"{new_global_workspace_id}" for i in range(i3_inst.nb_monitor)]

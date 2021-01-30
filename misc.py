@@ -1,10 +1,7 @@
 import os
 import subprocess
 import signal
-
-from actions import do_workspace_back_and_forth, rename_current_workspace
-
-# TODO : either use os or subprocess..
+import json
 
 # Mouse handling
 def get_mouse_position():
@@ -21,16 +18,16 @@ def set_mouse_position(x, y):
 
 
 # Signal handlers
-def set_back_and_forth_handler(i3_inst):
-    signal.signal(signal.SIGUSR1, lambda x,y: do_workspace_back_and_forth(i3_inst))
+def set_back_and_forth_handler(i3_inst, handler_fct):
+    signal.signal(signal.SIGUSR1, lambda x,y: handler_fct(i3_inst))
 
 
 def send_back_and_forth_signal_to_daemon(daemon_pid):
     os.kill(int(daemon_pid), signal.SIGUSR1)
 
 
-def set_rename_handler(i3_inst):
-    signal.signal(signal.SIGUSR2, lambda x,y: rename_current_workspace(i3_inst))
+def set_rename_handler(i3_inst, handler_fct):
+    signal.signal(signal.SIGUSR2, lambda x,y: handler_fct(i3_inst))
 
 
 def send_rename_signal_to_daemon(daemon_pid):
@@ -64,4 +61,35 @@ def get_pid_of_running_daemon():
 
 def clear_all_placeholders(i3_inst):
     i3_inst.command('[instance="empty_workspace"] kill')
+
+
+def read_workspace_names_from_file(i3_inst, filename="i3_multimonitor_workspaces.json"):
+    full_path = f"{i3_inst.tmp_folder}/{filename}"
+    names = {str(i):"" for i in range(0, 11)}   # Default values
+
+    if os.path.exists(full_path):
+        try:
+            with open(full_path, 'r') as f:
+                loaded_names = json.load(f)
+
+            if len(loaded_names) < 10:
+                raise Exception('Invalid config, must contains 1 key for each workspace')
+
+            names = loaded_names
+
+        except:
+            # Malformed json, rewrite config to default value
+            os.remove(full_path)
+
+    # Either the file doesn't exist or the config was invalid. We write default values
+    i3_inst.global_workspace_names = names
+    write_workspace_names_to_file(i3_inst)
+
+    return names
+
+
+def write_workspace_names_to_file(i3_inst, filename="i3_multimonitor_workspaces.json"):
+    full_path = f"{i3_inst.tmp_folder}/{filename}"
+    with open(full_path, 'w') as f:
+        json.dump(i3_inst.global_workspace_names, f, indent=2)
 

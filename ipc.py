@@ -1,4 +1,4 @@
-
+from misc import write_workspace_names_to_file
 
 # Placeholder windows handling
 def create_placeholder_windows(i3_inst, child_workspace_ids):
@@ -85,6 +85,10 @@ def do_rename(i3_inst, new_name, global_workspace_id, child_workspace_ids, focus
     if focused_child_id:
         # Refocus the previously focused child workspace
         rename_cmd += f'workspace number {focused_child_id};'
+
+    # Save new name to file
+    i3_inst.global_workspace_names[global_workspace_id] = new_name
+    write_workspace_names_to_file(i3_inst)
 
     i3_inst.command(rename_cmd)
 

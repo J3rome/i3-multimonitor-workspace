@@ -36,18 +36,13 @@ def rename_current_workspace(i3_inst):
     new_name = dmenu_prompt("Rename current workspace to :")        # FIXME : What happen when we press ESC ??
 
     if new_name is None:
+        # User pressed ESC
         return
 
     do_rename(i3_inst, new_name, current_global_id, child_workspace_ids, focused_child_id)
 
-    # FIXME : Write to file
-    i3_inst.global_workspace_names[current_global_id] = new_name
-
 
 def do_workspace_back_and_forth(i3_inst):
-    # FIXME : If we keep Alt+Tab pressed, the program become overloaded. 
-    #         Probably because it receive too many signals. We should put the lock on the signal sender
-    #         We could use a file as a lock
     if not i3_inst.back_and_forth_lock.acquire(blocking=False):
             return
 
