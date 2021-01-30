@@ -2,7 +2,7 @@ import os
 import subprocess
 import signal
 
-from actions import do_workspace_back_and_forth
+from actions import do_workspace_back_and_forth, rename_current_workspace
 
 # TODO : either use os or subprocess..
 
@@ -40,6 +40,14 @@ def set_back_and_forth_handler(i3_inst):
 
 def send_back_and_forth_signal_to_daemon(daemon_pid):
     os.kill(int(daemon_pid), signal.SIGUSR1)
+
+
+def set_rename_handler(i3_inst):
+    signal.signal(signal.SIGUSR2, lambda x,y: rename_current_workspace(i3_inst))
+
+
+def send_rename_signal_to_daemon(daemon_pid):
+    os.kill(int(daemon_pid), signal.SIGUSR2)
 
 
 def create_missing_workspaces(i3_inst, names_by_global_workspace, focused_id):
