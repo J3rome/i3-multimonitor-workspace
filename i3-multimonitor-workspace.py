@@ -27,7 +27,8 @@ import threading
 
 from i3ipc import Connection, Event
 
-from actions import rename_current_workspace, rewrite_workspace_names, move_current_container_to_workspace
+from actions import rename_current_workspace, move_current_container_to_workspace
+from ipc import create_placeholder_windows, show_placeholder_windows, focus_workspaces, kill_global_workspace
 from misc import get_mouse_position, set_mouse_position, setup_exit_signal_handling, clear_all_placeholders
 from misc import get_pid_of_running_daemon, send_back_and_forth_signal_to_daemon, set_back_and_forth_handler
 from misc import set_rename_handler, send_rename_signal_to_daemon
@@ -77,64 +78,106 @@ parser.add_argument("--back_and_forth", help="Will move back and forth between c
 parser.add_argument("--move_to_workspace", help="Will the currently focused container to the provided workspace", 
                     type=int, default=None, choices=range(0,11))
 
-
-# Placeholder windows handling
-def create_placeholder_windows(i3_inst, child_workspace_ids):
-    create_placeholder_cmd = ""
-    for workspace_id in child_workspace_ids:
-        class_name = f"empty_workspace_{workspace_id}"
-        create_placeholder_cmd += f"exec --no-startup-id i3-sensible-terminal --name '{class_name}'; "
-        i3_inst.spawned_placeholders.append(class_name)
-
-    i3_inst.command(create_placeholder_cmd)
+parser.add_argument("--tmp_folder", help="Temp folder where to store workspace names", 
+                    type=str, default='/tmp')
 
 
-def show_placeholder_windows(i3_inst, child_workspace_ids):
-    global_workspace_id = child_workspace_ids[0][-1]
-    workspace_name = i3.global_workspace_names[global_workspace_id] if len(i3.global_workspace_names[global_workspace_id]) > 0 else None
+def main(args):
+    i3 = Connection()
 
-    show_placeholders_cmd = ""
-    for workspace_id in child_workspace_ids:
-        show_placeholders_cmd += f'[instance="empty_workspace_{workspace_id}$"] move to workspace number {workspace_id}; '
+    # Retrieve the number of monitors
+    i3.nb_monitor = len([o for o in i3.get_outputs() if o.active])
 
-    i3_inst.command(show_placeholders_cmd)
+    # Set initial workspace
+    container_tree = i3.get_tree()
+    current_workspace_name_splitted = container_tree.find_focused().workspace().name.split(":")
+    focused_child_workspace = current_workspace_name_splitted[0]
+    i3.current_global_workspace_id = current_workspace_name_splitted[0][-1]
+    i3.last_global_workspace_id = i3.current_global_workspace_id
+
+    # Keep track of spawned placeholders
+    i3.spawned_placeholders = []
+
+    # Keep track of workspace names
+    # TODO : Load names from file
+    i3.global_workspace_names = {str(i):"" for i in range(0, 11)}
+
+    # Lock to prevent multiple events cascade
+    i3.focus_lock = threading.Lock()
+    i3.back_and_forth_lock = threading.Lock()
+
+    # ======================
+    #   Standalone Actions
+    # ======================
+
+    # Move focused container to another global workspace (Note: Works even if no daemon running)
+    if args.move_to_workspace:
+        move_current_container_to_workspace(i3, args.move_to_workspace, focused_child_workspace)
+        exit(0)
+
+    # Verify number of monitor
+    if i3.nb_monitor <= 1:
+        print("Need at least 2 monitors to use global workspaces. Terminating.")
+        exit(0)
+
+    # Verify daemon status
+    running_daemon_pid = get_pid_of_running_daemon()
+    assert running_daemon_pid is not None, "[ERROR] No daemon running"
+    assert '\n' not in running_daemon_pid, "[ERROR] Daemon already running"
+
+    # Rename global workspace
+    if args.rename:
+        send_rename_signal_to_daemon(running_daemon_pid)
+        #rename_current_workspace(i3, focused_child_workspace)
+        exit(0)
+
+    # Alt-Tab like between global workspaces
+    if args.back_and_forth:
+        send_back_and_forth_signal_to_daemon(running_daemon_pid)
+        exit(0)
 
 
-def focus_workspaces(i3_inst, child_workspace_ids, focused_workspace, focus_last):
-    global_workspace_id = child_workspace_ids[0][-1]
-    workspace_name = i3.global_workspace_names[global_workspace_id] if len(i3.global_workspace_names[global_workspace_id]) > 0 else None
+    # ======================
+    #  Multi Monitor Daemon
+    # ======================
 
-    # No need to refocus the workspace that triggered the WORKSPACE_FOCUS event, we just need to hide the placeholder
-    focus_workspace_cmd = f'[instance="empty_workspace_{focused_workspace}$"] move to scratchpad; '
+    # We make sure that no empty_workspace placeholders are left over from previous run 
+    # (Can only happen if we receive SIGKILL or SIGSTOP, otherwise placeholders would have been killed on exit)
+    clear_all_placeholders(i3)
 
-    for workspace_id in child_workspace_ids:
-        if workspace_id != focus_last and workspace_id != focused_workspace:
-            focus_workspace_cmd += f'workspace {workspace_id}:{global_workspace_id}'
+    # Focusing current global workspace and creating placeholders
+    focused_workspace_ids = [f'{i}{i3.current_global_workspace_id}' if i > 0 else i3.current_global_workspace_id for i in range(i3.nb_monitor)]
+    create_placeholder_windows(i3, focused_workspace_ids)
 
-            if workspace_name:
-                focus_workspace_cmd += f':{workspace_name}'
+    # FIXME : If workspaces already exists, should rename them all to fit what is in i3.global_workspace_names
+    # FIXME : Verify that there is no workspace > 9 before launching the daemon
+    # FIXME : Make sure we are focusing back the same workspace that was previously focused
 
-            focus_workspace_cmd += f'; [instance="empty_workspace_{workspace_id}$"] move to scratchpad; '
+    focus_workspace_cmd = ""
+    for workspace_id in focused_workspace_ids:
+        focus_workspace_cmd += f'workspace {workspace_id}:{i3.current_global_workspace_id}'
 
-    # Focus last the workspace on the same monitor
-    focus_workspace_cmd += f'workspace {focus_last}:{global_workspace_id}'
-    if workspace_name:
-        focus_workspace_cmd += f':{workspace_name}'
+        if len(i3.global_workspace_names[i3.current_global_workspace_id]) > 0:
+            focus_workspace_cmd += f':{i3.global_workspace_names[i3.current_global_workspace_id]}'
 
-    focus_workspace_cmd += f'; [instance="empty_workspace_{focus_last}$"] move to scratchpad; '
+        focus_workspace_cmd += '; '
 
-    i3_inst.command(focus_workspace_cmd)
+    i3.command(focus_workspace_cmd)
 
+    # Signal handler for workspace renaming
+    set_rename_handler(i3)
 
-# Workspace handling (killing/focusing)
-def kill_global_workspace(i3_inst, child_workspace_ids):
-    kill_placeholders_cmd = ""
-    for workspace_id in child_workspace_ids:
-        class_name = f'empty_workspace_{workspace_id}'
-        kill_placeholders_cmd += f'[instance="{class_name}$"] kill;'
-        i3_inst.spawned_placeholders.remove(class_name)
+    # Signal handler for workspace back and forth
+    set_back_and_forth_handler(i3)
 
-    i3_inst.command(kill_placeholders_cmd)
+    # Clean exit handling (will kill placeholders on exit)
+    setup_exit_signal_handling(i3)
+
+    # Setup i3 event handlers
+    i3.on(Event.WORKSPACE_FOCUS, on_workspace_focus)
+
+    # Start event handling loop
+    i3.main()
 
 
 # Focus event handler
@@ -208,100 +251,4 @@ def on_workspace_focus(i3_inst, event):
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    i3 = Connection()
-
-    # Retrieve the number of monitors
-    i3.nb_monitor = len([o for o in i3.get_outputs() if o.active])
-
-    # Set initial workspace
-    container_tree = i3.get_tree()
-    current_workspace_name_splitted = container_tree.find_focused().workspace().name.split(":")
-    focused_child_workspace = current_workspace_name_splitted[0]
-    i3.current_global_workspace_id = current_workspace_name_splitted[0][-1]
-    i3.last_global_workspace_id = i3.current_global_workspace_id
-
-    # Keep track of spawned placeholders
-    i3.spawned_placeholders = []
-
-    # Keep track of workspace names
-    # TODO : Load names from file
-    i3.global_workspace_names = {str(i):"" for i in range(0, 11)}
-
-    # Lock to prevent multiple events cascade
-    i3.focus_lock = threading.Lock()
-    i3.back_and_forth_lock = threading.Lock()
-
-    # ======================
-    #   Standalone Actions
-    # ======================
-
-    # Move focused container to another global workspace (Note: Works even if no daemon running)
-    if args.move_to_workspace:
-        move_current_container_to_workspace(i3, args.move_to_workspace, focused_child_workspace)
-        exit(0)
-
-    # Verify number of monitor
-    if i3.nb_monitor <= 1:
-        print("[ERROR] Need at least 2 monitors to use global workspaces. Terminating.")
-        exit(0)
-
-    # Verify daemon status
-    running_daemon_pid = get_pid_of_running_daemon()
-    #assert running_daemon_pid is not None, "[ERROR] No daemon running"
-    #assert '\n' not in running_daemon_pid, "[ERROR] Daemon already running"
-
-    # Rename global workspace
-    if args.rename:
-        send_rename_signal_to_daemon(running_daemon_pid)
-        #rename_current_workspace(i3, focused_child_workspace)
-        exit(0)
-
-    # Alt-Tab like between global workspaces
-    if args.back_and_forth:
-        send_back_and_forth_signal_to_daemon(running_daemon_pid)
-        exit(0)
-
-
-    # ======================
-    #  Multi Monitor Daemon
-    # ======================
-
-    # We make sure that no empty_workspace placeholders are left over from previous run 
-    # (Can only happen if we receive SIGKILL or SIGSTOP, otherwise placeholders would have been killed on exit)
-    clear_all_placeholders(i3)
-
-    # Focusing current global workspace and creating placeholders
-    focused_workspace_ids = [f'{i}{i3.current_global_workspace_id}' if i > 0 else i3.current_global_workspace_id for i in range(i3.nb_monitor)]
-    create_placeholder_windows(i3, focused_workspace_ids)
-
-    # FIXME : If workspaces already exists, should rename them all to fit what is in i3.global_workspace_names
-    # FIXME : Verify that there is no workspace > 9 before launching the daemon
-    # FIXME : Make sure we are focusing back the same workspace that was previously focused
-
-    focus_workspace_cmd = ""
-    for workspace_id in focused_workspace_ids:
-        focus_workspace_cmd += f'workspace {workspace_id}:{i3.current_global_workspace_id}'
-
-        if len(i3.global_workspace_names[i3.current_global_workspace_id]) > 0:
-            focus_workspace_cmd += f':{i3.global_workspace_names[i3.current_global_workspace_id]}'
-
-        focus_workspace_cmd += '; '
-
-    print(focus_workspace_cmd)
-    i3.command(focus_workspace_cmd)
-
-    # Signal handler for workspace renaming
-    set_rename_handler(i3)
-
-    # Signal handler for workspace back and forth
-    set_back_and_forth_handler(i3)
-
-    # Clean exit handling (will kill placeholders on exit)
-    setup_exit_signal_handling(i3)
-
-    # Setup i3 event handlers
-    i3.on(Event.WORKSPACE_FOCUS, on_workspace_focus)
-
-    # Start event handling loop
-    i3.main()
-
+    main(args)
