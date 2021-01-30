@@ -23,28 +23,30 @@ def show_placeholder_windows(i3_inst, child_workspace_ids):
 
 
 # Workspace handling (focusing/renaming/killing)
-def focus_workspaces(i3_inst, child_workspace_ids, focused_workspace, focus_last):
+def focus_workspaces(i3_inst, child_workspace_ids, focus_last):
     global_workspace_id = child_workspace_ids[0][-1]
     workspace_name = i3_inst.global_workspace_names[global_workspace_id] if len(i3_inst.global_workspace_names[global_workspace_id]) > 0 else None
 
     # No need to refocus the workspace that triggered the WORKSPACE_FOCUS event, we just need to hide the placeholder
-    focus_workspace_cmd = f'[instance="empty_workspace_{focused_workspace}$"] move to scratchpad; '
+    #focus_workspace_cmd = f'[instance="empty_workspace_{focus_last}$"] move to scratchpad; '
+    focus_workspace_cmd = ""
 
     for workspace_id in child_workspace_ids:
-        if workspace_id != focus_last and workspace_id != focused_workspace:
-            focus_workspace_cmd += f'workspace {workspace_id}:{global_workspace_id}'
+        if workspace_id != focus_last:
+            workspace_selector = f'{workspace_id}:{global_workspace_id}'
 
             if workspace_name:
-                focus_workspace_cmd += f':{workspace_name}'
+                workspace_selector += f':{workspace_name}'
 
-            focus_workspace_cmd += f'; [instance="empty_workspace_{workspace_id}$"] move to scratchpad; '
+            focus_workspace_cmd += f'workspace {workspace_selector}; [instance="empty_workspace_{workspace_id}$"] move to scratchpad; '
 
     # Focus last the workspace on the same monitor
-    focus_workspace_cmd += f'workspace {focus_last}:{global_workspace_id}'
-    if workspace_name:
-        focus_workspace_cmd += f':{workspace_name}'
+    workspace_selector = f'{focus_last}:{global_workspace_id}'
 
-    focus_workspace_cmd += f'; [instance="empty_workspace_{focus_last}$"] move to scratchpad; '
+    if workspace_name:
+        workspace_selector += f':{workspace_name}'
+
+    focus_workspace_cmd += f'workspace {workspace_selector}; [instance="empty_workspace_{focus_last}$"] move to scratchpad; '
 
     i3_inst.command(focus_workspace_cmd)
 
@@ -85,3 +87,23 @@ def do_rename(i3_inst, new_name, global_workspace_id, child_workspace_ids, focus
         rename_cmd += f'workspace number {focused_child_id};'
 
     i3_inst.command(rename_cmd)
+
+
+def rewrite_workspace_names(i3_inst, workspace_selectors):
+
+    rewrite_cmd = ""
+    for workspace_selector in workspace_selectors:
+        workspace_selector_splitted = workspace_selector.split(":")
+        workspace_id = workspace_selector_splitted[0]
+        workspace_name = workspace_selector_splitted[-1] if len(workspace_selector_splitted) == 3 else ""
+        global_id = workspace_id[-1]
+
+        if i3_inst.global_workspace_names[global_id] != workspace_name:
+            new_selector = f'{workspace_id}:{global_id}'
+
+            if len(i3_inst.global_workspace_names[global_id]) > 0:
+                new_selector += f':{i3_inst.global_workspace_names[global_id]}'
+
+            rewrite_cmd += f'rename workspace {workspace_selector} to {new_selector}; '
+
+    i3_inst.command(rewrite_cmd)

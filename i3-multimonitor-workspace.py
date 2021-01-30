@@ -28,11 +28,12 @@ import threading
 from i3ipc import Connection, Event
 
 from actions import rename_current_workspace, move_current_container_to_workspace
-from ipc import create_placeholder_windows, show_placeholder_windows, focus_workspaces, kill_global_workspace
+from ipc import create_placeholder_windows, show_placeholder_windows, focus_workspaces, kill_global_workspace, rewrite_workspace_names
 from misc import get_mouse_position, set_mouse_position, setup_exit_signal_handling, clear_all_placeholders
 from misc import get_pid_of_running_daemon, send_back_and_forth_signal_to_daemon, set_back_and_forth_handler
 from misc import set_rename_handler, send_rename_signal_to_daemon
 
+# TODO : Add option to use other launcher (rofi, provide user cmd)
 # FIXME : Sometime when clicking on another workspace name in the status bar, the name of some workspace is lost...
 # FIXME : Keep track of workspace name in the daemon. This way if a workspace get killed and we pop it again, the name should stay there. Might be worth implementing using files for persistence. This way we don't loose renaming on reboot
 
@@ -66,6 +67,8 @@ from misc import set_rename_handler, send_rename_signal_to_daemon
 #       Get config file path : i3 --more-version | grep -oP "Loaded i3 config: \K([\S\/]*)" | xargs grep -o "strip_workspace_numbers yes"
 #                              grep -o "strip_workspace_numbers yes" $(i3 --more-version | grep -oP "Loaded i3 config: \K([\S\/]*)")
 
+# TODO : Make sure there is no more than nb_monitor * 10 workspaces. If so, there is a problem
+
 
 parser = argparse.ArgumentParser('i3 Multi Monitor workspace manager')
 
@@ -90,8 +93,9 @@ def main(args):
 
     # Set initial workspace
     container_tree = i3.get_tree()
+    existing_workspaces = [w.name for w in container_tree.workspaces()]
     current_workspace_name_splitted = container_tree.find_focused().workspace().name.split(":")
-    focused_child_workspace = current_workspace_name_splitted[0]
+    focused_child_id = current_workspace_name_splitted[0]
     i3.current_global_workspace_id = current_workspace_name_splitted[0][-1]
     i3.last_global_workspace_id = i3.current_global_workspace_id
 
@@ -112,7 +116,7 @@ def main(args):
 
     # Move focused container to another global workspace (Note: Works even if no daemon running)
     if args.move_to_workspace:
-        move_current_container_to_workspace(i3, args.move_to_workspace, focused_child_workspace)
+        move_current_container_to_workspace(i3, args.move_to_workspace, focused_child_id)
         exit(0)
 
     # Verify number of monitor
@@ -128,7 +132,6 @@ def main(args):
     # Rename global workspace
     if args.rename:
         send_rename_signal_to_daemon(running_daemon_pid)
-        #rename_current_workspace(i3, focused_child_workspace)
         exit(0)
 
     # Alt-Tab like between global workspaces
@@ -145,24 +148,13 @@ def main(args):
     # (Can only happen if we receive SIGKILL or SIGSTOP, otherwise placeholders would have been killed on exit)
     clear_all_placeholders(i3)
 
+    # Rewrite workspace names to reflect i3.global_workspace_names content
+    rewrite_workspace_names(i3, existing_workspaces)
+
     # Focusing current global workspace and creating placeholders
-    focused_workspace_ids = [f'{i}{i3.current_global_workspace_id}' if i > 0 else i3.current_global_workspace_id for i in range(i3.nb_monitor)]
-    create_placeholder_windows(i3, focused_workspace_ids)
-
-    # FIXME : If workspaces already exists, should rename them all to fit what is in i3.global_workspace_names
-    # FIXME : Verify that there is no workspace > 9 before launching the daemon
-    # FIXME : Make sure we are focusing back the same workspace that was previously focused
-
-    focus_workspace_cmd = ""
-    for workspace_id in focused_workspace_ids:
-        focus_workspace_cmd += f'workspace {workspace_id}:{i3.current_global_workspace_id}'
-
-        if len(i3.global_workspace_names[i3.current_global_workspace_id]) > 0:
-            focus_workspace_cmd += f':{i3.global_workspace_names[i3.current_global_workspace_id]}'
-
-        focus_workspace_cmd += '; '
-
-    i3.command(focus_workspace_cmd)
+    initial_child_ids = [f'{i}{i3.current_global_workspace_id}' if i > 0 else i3.current_global_workspace_id for i in range(i3.nb_monitor)]
+    create_placeholder_windows(i3, initial_child_ids)
+    focus_workspaces(i3, initial_child_ids, focus_last=focused_child_id)
 
     # Signal handler for workspace renaming
     set_rename_handler(i3)
@@ -210,7 +202,7 @@ def on_workspace_focus(i3_inst, event):
         i3_inst.current_global_workspace_id = new_global_workspace_id
 
         # Define which monitor should be focused (We want to keep focus on the same monitor)
-        same_monitor_target_workspace = f"{from_workspace[0]}{new_global_workspace_id}" if len(from_workspace_id) == 2 else f"{new_global_workspace_id}"
+        #same_monitor_target_workspace = f"{from_workspace[0]}{new_global_workspace_id}" if len(from_workspace_id) == 2 else f"{new_global_workspace_id}"
 
         # Individual workspace ids
         new_workspace_child_ids = [f"{i}{new_global_workspace_id}" if i > 0 else f"{new_global_workspace_id}" for i in range(i3_inst.nb_monitor)]
@@ -238,8 +230,8 @@ def on_workspace_focus(i3_inst, event):
             create_placeholder_windows(i3_inst, new_workspace_child_ids)
 
         # Focus all workspaces belonging to the new global workspace
-        focus_workspaces(i3_inst, new_workspace_child_ids, focused_workspace=to_workspace_id, 
-                         focus_last=same_monitor_target_workspace)
+        #print(f"{to_workspace_id} -- {same_monitor_target_workspace}")
+        focus_workspaces(i3_inst, new_workspace_child_ids, focus_last=to_workspace_id)
 
         # Reset mouse position
         set_mouse_position(initial_mouse_position[0], initial_mouse_position[1])
