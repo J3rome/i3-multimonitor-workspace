@@ -17,7 +17,12 @@ def show_placeholder_windows(i3_inst, child_workspace_ids):
 
     show_placeholders_cmd = ""
     for workspace_id in child_workspace_ids:
-        show_placeholders_cmd += f'[instance="empty_workspace_{workspace_id}$"] move to workspace number {workspace_id}; '
+        workspace_selector = f'{workspace_id}:{global_workspace_id}'
+
+        if workspace_name:
+            workspace_selector += f':{workspace_name}'
+
+        show_placeholders_cmd += f'[instance="empty_workspace_{workspace_id}$"] move to workspace {workspace_selector}; '
 
     i3_inst.command(show_placeholders_cmd)
 
