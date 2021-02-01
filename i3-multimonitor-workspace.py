@@ -235,9 +235,9 @@ def on_workspace_focus(i3_inst, event):
         # Reset mouse position
         set_mouse_position(initial_mouse_position[0], initial_mouse_position[1])
 
-        # Unlock workspace change in 20 ms 
+        # Unlock workspace change in 40 ms 
         # This prevent event overloading when changing workspaces super fast
-        threading.Timer(0.02, i3_inst.focus_lock.release).start()
+        threading.Timer(0.04, i3_inst.focus_lock.release).start()
 
 
 if __name__ == "__main__":
