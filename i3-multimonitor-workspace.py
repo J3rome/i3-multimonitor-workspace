@@ -29,7 +29,7 @@ from i3ipc import Connection, Event
 
 from actions import rename_current_workspace, move_current_container_to_workspace
 from actions import do_workspace_back_and_forth, rename_current_workspace
-from ipc import create_placeholder_windows, show_placeholder_windows, focus_workspaces, kill_global_workspace, rewrite_workspace_names
+from ipc import create_placeholder_windows, show_placeholder_windows, focus_workspaces, kill_global_workspace, rewrite_workspace_names, show_missing_placeholders
 from misc import get_mouse_position, set_mouse_position, setup_exit_signal_handling, clear_all_placeholders
 from misc import get_pid_of_running_daemon, send_back_and_forth_signal_to_daemon, set_back_and_forth_handler
 from misc import set_rename_handler, send_rename_signal_to_daemon, read_workspace_names_from_file
@@ -97,6 +97,7 @@ def main(args):
     existing_workspaces = [w.name for w in container_tree.workspaces()]
     current_workspace_name_splitted = container_tree.find_focused().workspace().name.split(":")
     focused_child_id = current_workspace_name_splitted[0]
+    focused_monitor = focused_child_id[0] if len(focused_child_id) > 1 else ""
     i3.current_global_workspace_id = current_workspace_name_splitted[0][-1]
     i3.last_global_workspace_id = i3.current_global_workspace_id
 
@@ -157,6 +158,8 @@ def main(args):
     initial_child_ids = [f'{i}{i3.current_global_workspace_id}' if i > 0 else i3.current_global_workspace_id for i in range(i3.nb_monitor)]
     create_placeholder_windows(i3, initial_child_ids)
     focus_workspaces(i3, initial_child_ids, focus_last=focused_child_id)
+
+    show_missing_placeholders(i3, existing_workspaces)
 
     # Signal handler for workspace renaming
     set_rename_handler(i3, rename_current_workspace)
