@@ -1,29 +1,8 @@
 from collections import defaultdict
 import os
 import threading
-
 from ipc import do_rename
-
-def dmenu_prompt(prompt, default_val=""):
-    if type(default_val) in [list, set]:
-        default_val = "\n".join(default_val)
-
-    dmenu_cmd = f'echo "{default_val}" | dmenu -p "{prompt}"'
-    process = os.popen(dmenu_cmd)
-    user_input = process.read()
-
-    if '\n' not in user_input:
-        # Esc was pressed, cancel renaming
-        return None
-    
-    user_input = user_input.strip()
-
-    if user_input == default_val:
-        # Nothing was entered in the dmenu input
-        user_input = ""
-    process.close()
-
-    return user_input
+from misc import dmenu_prompt
 
 
 # Standalone actions

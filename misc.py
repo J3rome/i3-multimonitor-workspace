@@ -47,6 +47,28 @@ def setup_exit_signal_handling(i3_inst):
 
 
 # Others
+def dmenu_prompt(prompt, default_val=""):
+    if type(default_val) in [list, set]:
+        default_val = "\n".join(default_val)
+
+    dmenu_cmd = f'echo "{default_val}" | dmenu -p "{prompt}"'
+    process = os.popen(dmenu_cmd)
+    user_input = process.read()
+
+    if '\n' not in user_input:
+        # Esc was pressed, cancel renaming
+        return None
+    
+    user_input = user_input.strip()
+
+    if user_input == default_val:
+        # Nothing was entered in the dmenu input
+        user_input = ""
+    process.close()
+
+    return user_input
+
+    
 def get_pid_of_running_daemon():
     # FIXME : This doesn't work if the daemon is launched with parameters.. But it help grepping out the --rename and --back_and_forth processes..
     cmd = 'ps -x | grep " python.*i3-multimonitor-workspace.py$" | grep -v "/bin/sh" | awk \'{print $1}\''
