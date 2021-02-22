@@ -34,6 +34,22 @@ from misc import get_mouse_position, set_mouse_position, setup_exit_signal_handl
 from misc import get_pid_of_running_daemon, send_back_and_forth_signal_to_daemon, set_back_and_forth_handler
 from misc import set_rename_handler, send_rename_signal_to_daemon, read_workspace_names_from_file
 
+# FIXME : When a container is in fullscreen and we switch workspace, the container is not fullscreen anymore when we open it
+    # Somehow related to moving empty_workspace_placeholders to scratchpad...
+    # See focus_workspace() in ipc.py
+    # focus_workspace_cmd += f'workspace {workspace_selector}; [instance="empty_workspace_{workspace_id}$"] move to scratchpad; '
+    # Commenting the move to scratchpad seems to fix.
+
+    # ONLY HAPPEN WHEN THE CURRENT FOCUSED CHILD WORKSPACE IS IN FULLSCREEN
+        # doesn't happen if child 1 is fullscreen and we switch from child 2
+        # Not sending the placeholders to 
+
+# FIXME : Alt-Tab is slow
+
+# FIXME : Get rid of the delay in show_missing_placeholders()
+
+# TODO : setup.py & Making this accessible from anywhere ? Or maybe via python3 -m i3-multi-monitor ?
+
 # TODO : Cleanup MY config file, remove some binding that are rendered useless by this
 # TODO : Add option to use other launcher (rofi, provide user cmd)
 # TODO : Add option for workspaces that should always be present
