@@ -36,8 +36,25 @@ def do_workspace_back_and_forth(i3_inst):
 
 # FIXME : If the to_workspace doesn't exist, rewrite the workspace names after moving the workspace (An thus creating the workspace)
 #         ... Not sure it's super helpful tho, the other global workspace childs will be created only when one of its workspace is focused
-def move_current_container_to_workspace(i3_inst, to_workspace_global_id, current_workspace_id):
+def move_current_container_to_workspace(i3_inst, to_workspace_global_id, current_workspace_id, existing_workspaces):
     move_to = to_workspace_global_id if len(current_workspace_id) == 1 else f'{current_workspace_id[0]}{to_workspace_global_id}'
 
-    i3_inst.command(f"move container to workspace number {move_to}")
+    workspace_name = i3_inst.global_workspace_names[to_workspace_global_id] if len(i3_inst.global_workspace_names[to_workspace_global_id]) > 0 else None
+
+    workspace_selector = f'{move_to}:{to_workspace_global_id}'
+
+    if workspace_name:
+        workspace_selector += f':{workspace_name}'
+
+    i3_inst.command(f"move container to workspace {workspace_selector}")
+
+    if move_to not in [n.split(":")[0] for n in existing_workspaces]:
+        new_childs_id = [f"{i}{to_workspace_global_id}" if i > 0 else f"{to_workspace_global_id}" for i in range(i3_inst.nb_monitor)]
+
+        # FIXME : Detect if there is a placeholder spawned, otherwise spawn it
+        #         THIS WILL FUCKUP THE DAEMON, ONLY THE DAEMON KNOW WHICH WINDOWS ARE SPAWNED.
+        #         THE DAEMON WILL RECREATE PLACEHOLDER ON FOCUS
+        #subprocess.popen('ps -aux | grep "i3-sensible-terminal --name \'empty_workspace_{}\'$" | wc -l')
+
+        #show_missing_placeholders(i3_inst, new_childs_id)
 

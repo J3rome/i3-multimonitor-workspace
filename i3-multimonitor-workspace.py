@@ -83,7 +83,7 @@ parser.add_argument("--back_and_forth", help="Will move back and forth between c
                     action="store_true")
 
 parser.add_argument("--move_to_workspace", help="Will the currently focused container to the provided workspace", 
-                    type=int, default=None, choices=range(0,11))
+                    type=int, default=None, choices=range(0,10))
 
 parser.add_argument("--tmp_folder", help="Temp folder where to store workspace names", 
                     type=str, default='/tmp')
@@ -120,8 +120,8 @@ def main(args):
     # ======================
 
     # Move focused container to another global workspace (Note: Works even if no daemon running, useful for laptop)
-    if args.move_to_workspace:
-        move_current_container_to_workspace(i3, args.move_to_workspace, focused_child_id)
+    if args.move_to_workspace is not None:
+        move_current_container_to_workspace(i3, str(args.move_to_workspace), focused_child_id, existing_workspaces)
         exit(0)
 
     # Verify number of monitor
@@ -214,7 +214,8 @@ def on_workspace_focus(i3_inst, event):
         old_workspace_child_ids = [f"{i}{old_global_workspace_id}" if i > 0 else f"{old_global_workspace_id}" for i in range(i3_inst.nb_monitor)]
 
         # Check if the old global workspace is empty
-        existing_workspaces = i3_inst.get_tree().workspaces()
+        i3_tree = i3_inst.get_tree()
+        existing_workspaces = i3_tree.workspaces()
         nb_container_in_old_workspace = sum([len(w.descendants()) for w in existing_workspaces if w.name.split(":")[0] in old_workspace_child_ids])
 
 
