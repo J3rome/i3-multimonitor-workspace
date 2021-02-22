@@ -34,42 +34,28 @@ from misc import get_mouse_position, set_mouse_position, setup_exit_signal_handl
 from misc import get_pid_of_running_daemon, send_back_and_forth_signal_to_daemon, set_back_and_forth_handler
 from misc import set_rename_handler, send_rename_signal_to_daemon, read_workspace_names_from_file
 
+# TODO : Cleanup MY config file, remove some binding that are rendered useless by this
 # TODO : Add option to use other launcher (rofi, provide user cmd)
-# FIXME : Sometime when clicking on another workspace name in the status bar, the name of some workspace is lost...
-# FIXME : Keep track of workspace name in the daemon. This way if a workspace get killed and we pop it again, the name should stay there. Might be worth implementing using files for persistence. This way we don't loose renaming on reboot
-
-# FIXME : When clicking on another workspace in the status bar (In another workspace than the one focused), the wrong monitor get focused... Not sure how to distinguish between click tho..
-# FIXME : Need more testing but I don't think we need the mouse handling anymore
-# FIXME : If somehow a workspace get deleted and we recreate it, we should look at its brother workspaces names. If a custom name is set, set the same instead of just setting the global id as we do on a normal new workspace
-# FIXME : When switching 2 fast and the second workspace is empty, it might get erased
 # TODO : Add option for workspaces that should always be present
-# FIXME : When moving a container to a new workspace (Alt+Shift+7 when workspace 7 doesn't exist), Only the workspace on the main monitor will be created. Not a big issue, when focusing the newly created workspace the other workspaces will be created.
-# TODO : Define a way to have named workspace at start (from config) but still keep the workspace 
-# TODO : Do some argument parsing to provide actions via this script
-#           - Move a container to a specific global workspace. Making sure that the moved container stay on the same monitor
+# TODO : Make sure there is no more than nb_monitor * 10 workspaces. If so, there is a problem
+# TODO : More standalone actions
 #           - Move all containers of a global workspace to another
 #           - Move container to next workspace & focus (See current script)
-
-# TODO : Moving a window to a monitor (Mod+Shift+Nb) should send the window to the same monitor
-
-# FIXME : Still some wiggling (workspaces in status bar) when moving from an empty window
-#         - Not sure how we could solve this, we would need a hook WORKSPACE_PRE_EMPTY. 
-#           When we enter the WORKSPACE_EMPTY event, the workspace has already been killed so spawning a new placeholder create the wiggling
-
 # TODO : Don't use actual terminal windows as placeholders
 #        - Force geometry on windows so that they are at the top right of the monitor and take minimal space (Right now we could have a transparent placeholder floating over the monitor)
 #        - IF we change this, we need to handle transparency a different way then via .bashrc
 #        - Spawning windows from python would make it so that if the program crash, all placeholders will automatically be killed
-#           We could also set the transparency when creating the windows, no need for the .bashrc magic         
-
-# TODO : Cleanup MY config file, remove some binding that are rendered useless by this
-
-# TODO : Check if strip_workspace_numbers yes is present in config
+#           We could also set the transparency when creating the windows, no need for the .bashrc magic
+# TODO : [ACTUALLY SHOULD REQUIRE THIS OPTION FOR THE SCRIPT TO WORK] Check if strip_workspace_numbers yes is present in config
 #       Get config file path : i3 --more-version | grep -oP "Loaded i3 config: \K([\S\/]*)" | xargs grep -o "strip_workspace_numbers yes"
 #                              grep -o "strip_workspace_numbers yes" $(i3 --more-version | grep -oP "Loaded i3 config: \K([\S\/]*)")
 
-# TODO : Make sure there is no more than nb_monitor * 10 workspaces. If so, there is a problem
-
+# FIXME : Need more testing but I don't think we need the mouse handling anymore
+# FIXME : When switching 2 fast and the second workspace is empty, it might get erased
+# FIXME : When moving a container to a new workspace (Alt+Shift+7 when workspace 7 doesn't exist), Only the workspace on the main monitor will be created. Not a big issue, when focusing the newly created workspace the other workspaces will be created.
+# FIXME : Still some wiggling (workspaces in status bar) when moving from an empty window
+#         - Not sure how we could solve this, we would need a hook WORKSPACE_PRE_EMPTY. 
+#           When we enter the WORKSPACE_EMPTY event, the workspace has already been killed so spawning a new placeholder create the wiggling
 
 parser = argparse.ArgumentParser('i3 Multi Monitor workspace manager')
 
