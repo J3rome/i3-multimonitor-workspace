@@ -176,6 +176,10 @@ def main(args):
     # Setup i3 event handlers
     i3.on(Event.WORKSPACE_FOCUS, on_workspace_focus)
 
+    print("============================================")
+    print(" i3 Multi Monitor Workspace manager running")
+    print("============================================")
+
     # Start event handling loop
     i3.main()
 
