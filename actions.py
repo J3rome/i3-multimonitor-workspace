@@ -41,7 +41,7 @@ def move_current_container_to_workspace(i3_inst, to_workspace_global_id, current
 
     workspace_name = i3_inst.global_workspace_names[to_workspace_global_id] if len(i3_inst.global_workspace_names[to_workspace_global_id]) > 0 else None
 
-    workspace_selector = f'{move_to}:{to_workspace_global_id}'
+    workspace_selector = f'{move_to}:{to_workspace_global_id}' if i3_inst.nb_monitor > 1 else to_workspace_global_id
 
     if workspace_name:
         workspace_selector += f':{workspace_name}'
