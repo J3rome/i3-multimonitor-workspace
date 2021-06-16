@@ -33,11 +33,11 @@ DP-1
 	23:3
 ```
 
-For example, when the user navigate to the workspace `2` using `modKey+2`, the daemon will bring up the workspaces `2`,`12` and `22` thus creating the effect of a `Multi Monitor Workspace`. Specifying the `strip_workspace_numbers` option in the i3 config will ensure that `2` is shown on each monitors instead of `2`, `12` and `22`. Since the daemon is listening to `WORKSPACE_FOCUS` events, there is no need to change keybindings (except for specific cases, see [i3 Configuration](#required-i3-configuration)).
+For example, when the user navigate to the workspace `2` using `modKey+2`, the daemon will bring up the workspaces `2`,`12` and `22` thus creating the effect of a `Multi Monitor Workspace`. Since the daemon is listening to `WORKSPACE_FOCUS` events, there is no need to change keybindings (except for specific cases, see [i3 Configuration](#required-i3-configuration)).
 
 
 
-The biggest challenge is to keep all the individual workspaces opened even when there is no spawned window inside it. `i3` is built to clear the workspace when it's empty and the focus to the workspace is lost. To workaround this, we spawn dummy windows that are used as placeholders (This first version uses terminal windows as placeholders which is definitely not the most efficient solution, see [Known Issues](#known-issues) for more details).
+The biggest challenge is to keep all the individual workspaces opened even when there is no spawned window inside it. `i3` is built to clear a workspace when it's empty unfocused. To workaround this, we spawn dummy windows that are used as placeholders (This first version uses terminal windows as placeholders which is definitely not the most efficient solution, see [Known Issues](#limitations/known-issues) for more details). These placeholders are moved to the `scratchpad` when the `multimonitor workspace` is focused and moved back to the individual workspaces when it loose focus.
 
 
 
@@ -63,7 +63,7 @@ Simply cloning this repository and running `python3 i3-multimonitor-workspace.py
 
 ### Required i3 configuration
 
-In the future, I hope to find a way to reduce the amount of configuration needed for the daemon to work. In the meantime, here is what you need to add to your configuration :
+In the future, I hope to find a way to reduce the amount of configuration needed for the daemon to work. In the meantime, here is what you need to add to your configuration (typically in `~/.config/i3/config`)
 
 
 
@@ -79,7 +79,9 @@ Then, the placeholder windows should be moved to `scratchpad` automatically :
 for_window [instance="empty_workspace"] move to scratchpad
 ```
 
-We use an ugly hack to ensure that the placeholders are transparent... We won't need this when we stop using terminal windows as placeholders. This step is optional but without it, you might see some flashes when changing workspace). Add the following lines to your `.bashrc` :
+We use an ugly hack to ensure that the placeholders are transparent... We won't need this when we stop using terminal windows as placeholders. This step is optional but without it, you might see some flashes when changing workspace. 
+
+Add the following lines to your `.bashrc` :
 
 ```bash
 if [[ ! -z ${DISPLAY} ]]; then
@@ -88,6 +90,21 @@ if [[ ! -z ${DISPLAY} ]]; then
         transset --id ${EMPTY_PLACEHOLDER_WINDOW_ID} 0
     fi
 fi
+```
+
+
+
+Specifying the `strip_workspace_numbers` option in the `i3bar` configuration will allow for a more uniform workspace naming :
+
+```
+bar {
+	...
+    strip_workspace_numbers yes
+    status_command i3status
+    position top
+    tray_output primary
+    ...
+}
 ```
 
 
@@ -122,7 +139,7 @@ workspace 29 output DP-1
 
 ### Optional i3 configuration
 
-To enable workspace renaming (this keybinding will rename the current `multimonitor workspace`):
+To enable workspace renaming (this keybinding will allow you to set a name to the current `multimonitor workspace`):
 
 ```bash
 bindsym $superKey+$altKey+r exec "python3 /opt/i3-multimonitor-workspace/i3-multimonitor-workspace.py --rename"
@@ -138,7 +155,7 @@ bindsym $altKey+Tab exec "python3 /opt/i3-multimonitor-workspace/i3-multimonitor
 
 
 
-When moving a window to a specific workspace with the default keybindings (`modKey+Shift+3`), the window will always be placed in the center monitor. The `--move_to_workspace` parameter can be used to move the window to another workspace and keeping the window in the same monitor. Use this configuration to enable this :
+When moving a window to a specific workspace with the default keybindings (`modKey+Shift+3`), the window will always be placed on the main monitor. The `--move_to_workspace` parameter can be used to move the window to another `multimonitor workspace` while keeping the window on the same monitor. Use this configuration to enable this feature :
 
 ```bash
 bindsym $altKey+Shift+0 exec --no-startup-id "python3 /opt/i3-multimonitor-workspace/i3-multimonitor-workspace.py --move_to_workspace 0"
@@ -168,13 +185,12 @@ At first, I wanted this software to be as transparent as possible which is why I
 * Doesn't support plugging/unplugging of monitors. The daemon must be restarted and the config must be modified according to the new monitor setup (the workspace monitor assignement config)
 * The number of multimonitor workspaces is limited to `10` (`10 * NbMonitor` individual workspaces). 
 * The daemon will only start when more than 1 monitor is connected (loosing the `--back_and_forth` and `--rename` capabilities)
-* The daemon keep the workspace names and the last focused workspace in memory, should write to file.
 * `--back_and_forth` can be a bit slow
-* When fast switching between `multimonitor workspace`, an individual workspace might get "deleted". Focusing back on this `multimonitor workspace` should sync back the individual workspaces.
+* When fast switching between `multimonitor workspace`, an individual workspace might get "deleted" causing some jittering in the menu bar. Focusing back on this `multimonitor workspace` should sync back the individual workspaces.
 * When moving a container to a new workspace (Alt+Shift+7 when workspace 7 doesn't exist), Only the workspace on the main monitor will be created. Not a big issue, when focusing the newly created workspace the other workspaces will be created.
 * Sometime when a window is in fullscreen and we switch workspace, the container is not fullscreen anymore when we get back to the workspace.
-
-
+* When changing workspaces too quickly (By pressing down a binding for "Next workspace" and not releasing it for a couple of seconds), the `multimonitor workspace` changes won't be handled (for performance reasons). Switching back to the affected workspaces should sync them back.
+* Depending on your computer load (Ram almost full, CPU 100%, etc..), it might take some time for the focus events to be propagated which feel kinda laggy.
 
 ## TODO :
 
@@ -182,13 +198,8 @@ At first, I wanted this software to be as transparent as possible which is why I
 * More testing with different monitor configurations
 * Script that auto generate the necessary `i3 config`
 * Add possibility to specify default workspaces (Will be automatically created/renamed on launch)
+* The daemon keep the workspace names and the last focused workspace in memory, should write to file instead.
 * Fix issues in [Limitations/Known Issues](#limitations/known-issues)
-
-## Known Issues
-* When changing global workspace from an empty workspace, the workspace identifier disappear for short time which cause jittering in the status bar.
-	* Not sure how to fix this since we don't have a `WORKSPACE_PRE_EMPTY` event, when the `WORKSPACE_EMPTY` event is triggered, the empty workspace has already been killed.
-* When changing workspaces too quickly, the multi-monitor workspace won't be handled (Pressing down a binding for "Next workspace" and not releasing it for a couple of seconds)
-	* When the user stop changing workspaces, they will most probably be out of sync. Simply changing to another workspace and coming back will resync the workspaces
 
 
 ## Version infos
