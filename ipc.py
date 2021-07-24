@@ -105,11 +105,14 @@ def rewrite_workspace_names(i3_inst, workspace_selectors):
     rewrite_cmd = ""
     for workspace_selector in workspace_selectors:
         workspace_selector_splitted = workspace_selector.split(":")
+        workspace_selector_splitted_len = len(workspace_selector_splitted)
         workspace_id = workspace_selector_splitted[0]
-        workspace_name = workspace_selector_splitted[-1] if len(workspace_selector_splitted) == 3 else ""
         global_id = workspace_id[-1]
 
-        if i3_inst.global_workspace_names[global_id] != workspace_name:
+        # If there is 2 separator, the last field is the name
+        workspace_name = workspace_selector_splitted[-1] if workspace_selector_splitted_len == 3 else ""
+
+        if i3_inst.global_workspace_names[global_id] != workspace_name or workspace_selector_splitted_len == 1:
             new_selector = f'{workspace_id}:{global_id}'
 
             if len(i3_inst.global_workspace_names[global_id]) > 0:
