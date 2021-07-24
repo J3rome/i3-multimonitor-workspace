@@ -216,6 +216,7 @@ def on_workspace_focus(i3_inst, event):
         # Individual workspace ids
         new_workspace_child_ids = [f"{i}{new_global_workspace_id}" if i > 0 else f"{new_global_workspace_id}" for i in range(i3_inst.nb_monitor)]
         old_workspace_child_ids = [f"{i}{old_global_workspace_id}" if i > 0 else f"{old_global_workspace_id}" for i in range(i3_inst.nb_monitor)]
+        newly_focused_workspace_child_id = f"{from_workspace_id[0]}{new_global_workspace_id}" if len(from_workspace_id) > 1 else new_global_workspace_id
 
         # Check if the old global workspace is empty
         i3_tree = i3_inst.get_tree()
@@ -241,7 +242,7 @@ def on_workspace_focus(i3_inst, event):
 
         # Focus all workspaces belonging to the new global workspace
         #print(f"{to_workspace_id} -- {same_monitor_target_workspace}")
-        focus_workspaces(i3_inst, new_workspace_child_ids, focus_last=to_workspace_id)
+        focus_workspaces(i3_inst, new_workspace_child_ids, focus_last=newly_focused_workspace_child_id)
 
         # Reset mouse position
         set_mouse_position(initial_mouse_position[0], initial_mouse_position[1])
