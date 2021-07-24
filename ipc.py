@@ -126,8 +126,6 @@ def rewrite_workspace_names(i3_inst, workspace_selectors):
 def show_missing_placeholders(i3_inst, existing_workspaces):
     global_ids = {w.split(":")[0][-1] for w in existing_workspaces} - {i3_inst.current_global_workspace_id}
 
-    print(global_ids)
-
     for global_id in global_ids:
         child_ids = [f'{i}{global_id}' if i > 0 else global_id for i in range(i3_inst.nb_monitor)]
 

@@ -45,16 +45,14 @@ from misc import set_rename_handler, send_rename_signal_to_daemon, read_workspac
         # doesn't happen if child 1 is fullscreen and we switch from child 2
         # Not sending the placeholders to 
 
-# FIXME : Alt-Tab is slow
-
 # FIXME : Get rid of the delay in show_missing_placeholders()
 
 # TODO : setup.py & Making this accessible from anywhere ? Or maybe via python3 -m i3-multi-monitor ?
 
 # TODO : Cleanup MY config file, remove some binding that are rendered useless by this
+
 # TODO : Add option to use other launcher (rofi, provide user cmd)
-# TODO : Add option for workspaces that should always be present
-# TODO : Make sure there is no more than nb_monitor * 10 workspaces. If so, there is a problem
+
 # TODO : More standalone actions
 #           - Move all containers of a global workspace to another
 #           - Move container to next workspace & focus (See current script)
@@ -68,8 +66,6 @@ from misc import set_rename_handler, send_rename_signal_to_daemon, read_workspac
 #                              grep -o "strip_workspace_numbers yes" $(i3 --more-version | grep -oP "Loaded i3 config: \K([\S\/]*)")
 
 # FIXME : Need more testing but I don't think we need the mouse handling anymore
-# FIXME : When switching 2 fast and the second workspace is empty, it might get erased
-# FIXME : When moving a container to a new workspace (Alt+Shift+7 when workspace 7 doesn't exist), Only the workspace on the main monitor will be created. Not a big issue, when focusing the newly created workspace the other workspaces will be created.
 # FIXME : Still some wiggling (workspaces in status bar) when moving from an empty window
 #         - Not sure how we could solve this, we would need a hook WORKSPACE_PRE_EMPTY. 
 #           When we enter the WORKSPACE_EMPTY event, the workspace has already been killed so spawning a new placeholder create the wiggling
@@ -100,7 +96,6 @@ def main(args):
     existing_workspaces = [w.name for w in container_tree.workspaces()]
     current_workspace_name_splitted = container_tree.find_focused().workspace().name.split(":")
     focused_child_id = current_workspace_name_splitted[0]
-    focused_monitor = focused_child_id[0] if len(focused_child_id) > 1 else ""
     i3.current_global_workspace_id = current_workspace_name_splitted[0][-1]
     i3.last_global_workspace_id = i3.current_global_workspace_id
 

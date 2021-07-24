@@ -191,6 +191,8 @@ At first, I wanted this software to be as transparent as possible which is why I
 * Sometime when a window is in fullscreen and we switch workspace, the container is not fullscreen anymore when we get back to the workspace.
 * When changing workspaces too quickly (By pressing down a binding for "Next workspace" and not releasing it for a couple of seconds), the `multimonitor workspace` changes won't be handled (for performance reasons). Switching back to the affected workspaces should sync them back.
 * Depending on your computer load (Ram almost full, CPU 100%, etc..), it might take some time for the focus events to be propagated which feel kinda laggy.
+* Changing workspace via mouse click in the status bar might cause the wrong monitor to be focused after the workspace change.
+* If you connect a second monitor while some workspaces already exist and attempt to relaunch the manager, everything will go to hell :) The best course of action here is to close all workspaces before relaunching the workspace manager.
 
 ## TODO :
 
@@ -200,6 +202,9 @@ At first, I wanted this software to be as transparent as possible which is why I
 * Add possibility to specify default workspaces (Will be automatically created/renamed on launch)
 * The daemon keep the workspace names and the last focused workspace in memory, should write to file instead.
 * Fix issues in [Limitations/Known Issues](#limitations/known-issues)
+* Refactor: Create a class that wrap the i3 connection instead of adding stuff inside the i3 connection object
+* Read/write config from file instead of relying on daemon inmemory config (i3.workspace_names, i3.spawned_placeholders, i3.current_global_workspace_id, i3.last_global_workspace_id)
+	* Might lead to race conditions if not careful, need to have some locking mecanism. Simply use lock files ?
 
 
 ## Version infos
