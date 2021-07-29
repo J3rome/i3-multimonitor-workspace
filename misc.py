@@ -85,11 +85,14 @@ def clear_all_placeholders(i3_inst):
     i3_inst.command('[instance="empty_workspace"] kill')
 
 
-def read_workspace_names_from_file(i3_inst, filename="i3_multimonitor_workspaces.json"):
+def read_workspace_names_from_file(i3_inst, filename="workspace_names.json"):
     full_path = f"{i3_inst.tmp_folder}/{filename}"
     names = {str(i):"" for i in range(0, 10)}   # Default values
 
-    if os.path.exists(full_path):
+    if not os.path.exists(i3_inst.tmp_folder):
+        os.makedirs(i3_inst.tmp_folder)
+
+    elif os.path.exists(full_path):
         try:
             with open(full_path, 'r') as f:
                 loaded_names = json.load(f)
@@ -110,7 +113,7 @@ def read_workspace_names_from_file(i3_inst, filename="i3_multimonitor_workspaces
     return names
 
 
-def write_workspace_names_to_file(i3_inst, filename="i3_multimonitor_workspaces.json"):
+def write_workspace_names_to_file(i3_inst, filename="workspace_names.json"):
     full_path = f"{i3_inst.tmp_folder}/{filename}"
     with open(full_path, 'w') as f:
         json.dump(i3_inst.global_workspace_names, f, indent=2)

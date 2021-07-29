@@ -25,6 +25,7 @@
 ####################################################################################
 import argparse
 import threading
+from pathlib import Path
 
 from i3ipc import Connection, Event
 
@@ -82,7 +83,7 @@ parser.add_argument("--move_to_workspace", help="Will the currently focused cont
                     type=int, default=None, choices=range(0,10))
 
 parser.add_argument("--tmp_folder", help="Temp folder where to store workspace names", 
-                    type=str, default='/tmp')
+                    type=str, default=str(Path.home() / '.local/share/i3-multimonitor-workspaces'))
 
 
 def main(args):
