@@ -31,7 +31,8 @@ from i3ipc import Connection, Event
 
 from actions import rename_current_workspace, move_current_container_to_workspace
 from actions import do_workspace_back_and_forth, rename_current_workspace
-from ipc import create_placeholder_windows, show_placeholder_windows, focus_workspaces, kill_global_workspace, rewrite_workspace_names, show_missing_placeholders
+from ipc import create_placeholder_windows, show_placeholder_windows, focus_workspaces, kill_global_workspace, rewrite_workspace_names
+from ipc import show_missing_placeholders, update_spawned_placeholder_windows_count
 from misc import get_mouse_position, set_mouse_position, setup_exit_signal_handling, clear_all_placeholders
 from misc import get_pid_of_running_daemon, send_back_and_forth_signal_to_daemon, set_back_and_forth_handler
 from misc import set_rename_handler, send_rename_signal_to_daemon, read_workspace_names_from_file
@@ -81,6 +82,9 @@ parser.add_argument("--back_and_forth", help="Will move back and forth between c
 
 parser.add_argument("--move_to_workspace", help="Will the currently focused container to the provided workspace", 
                     type=int, default=None, choices=range(0,10))
+
+parser.add_argument("--missing", help="Will attempt to fix missing placeholders", 
+                    action="store_true")
 
 parser.add_argument("--tmp_folder", help="Temp folder where to store workspace names", 
                     type=str, default=str(Path.home() / '.local/share/i3-multimonitor-workspaces'))
@@ -141,6 +145,10 @@ def main(args):
         send_back_and_forth_signal_to_daemon(running_daemon_pid)
         exit(0)
 
+    if args.missing:
+        update_spawned_placeholder_windows_count(i3)
+        show_missing_placeholders(i3, existing_workspaces)
+        exit(0)
 
     # ======================
     #  Multi Monitor Daemon

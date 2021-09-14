@@ -35,6 +35,10 @@ def show_placeholder_windows(i3_inst, child_workspace_ids):
     i3_inst.command(show_placeholders_cmd)
 
 
+def update_spawned_placeholder_windows_count(i3_inst):
+    i3_inst.spawned_placeholders = [w.window_instance for w in i3_inst.get_tree().descendants() if w.window_instance and w.window_instance.startswith('empty_workspace')]
+
+
 # Workspace handling (focusing/renaming/killing)
 def focus_workspaces(i3_inst, child_workspace_ids, focus_last):
     global_workspace_id = child_workspace_ids[0][-1]
