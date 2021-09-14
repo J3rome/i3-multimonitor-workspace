@@ -37,6 +37,10 @@ def do_workspace_back_and_forth(i3_inst):
 # FIXME : If the to_workspace doesn't exist, rewrite the workspace names after moving the workspace (An thus creating the workspace)
 #         ... Not sure it's super helpful tho, the other global workspace childs will be created only when one of its workspace is focused
 def move_current_container_to_workspace(i3_inst, to_workspace_global_id, current_workspace_id, existing_workspaces):
+    if current_workspace_id[-1] == to_workspace_global_id:
+        # Container already in workspace
+        return
+
     move_to = to_workspace_global_id if len(current_workspace_id) == 1 else f'{current_workspace_id[0]}{to_workspace_global_id}'
 
     workspace_name = i3_inst.global_workspace_names[to_workspace_global_id] if len(i3_inst.global_workspace_names[to_workspace_global_id]) > 0 else None
