@@ -1,6 +1,8 @@
 # i3-MultiMonitor-Workspace
 
-> :warning: This software is a Minimum Viable Product. Been using it for a while on my own setup. There might be some problems, feel free to fill up an issue
+> :warning: This software is a Minimum Viable Product. 
+> 
+> Been using it for a while on my own setup. There might be some problems, feel free to fill up an issue
 
 ## The problem
 
