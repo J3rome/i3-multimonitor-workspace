@@ -1,7 +1,7 @@
 from collections import defaultdict
 import os
 import threading
-from ipc import do_rename
+from ipc import do_rename, show_missing_placeholders, update_spawned_placeholder_windows_list
 from misc import dmenu_prompt
 
 
@@ -34,8 +34,6 @@ def do_workspace_back_and_forth(i3_inst):
     threading.Timer(0.01, i3_inst.back_and_forth_lock.release).start()
 
 
-# FIXME : If the to_workspace doesn't exist, rewrite the workspace names after moving the workspace (An thus creating the workspace)
-#         ... Not sure it's super helpful tho, the other global workspace childs will be created only when one of its workspace is focused
 def move_current_container_to_workspace(i3_inst, to_workspace_global_id, current_workspace_id, existing_workspaces):
     if current_workspace_id[-1] == to_workspace_global_id:
         # Container already in workspace
@@ -53,12 +51,14 @@ def move_current_container_to_workspace(i3_inst, to_workspace_global_id, current
     i3_inst.command(f"move container to workspace {workspace_selector}")
 
     if move_to not in [n.split(":")[0] for n in existing_workspaces]:
+        # This global workspace didn't exist prior to the 'move container' operation.
+        # Let's show the missing placeholders so that all individual workspaces get shown.
         new_childs_id = [f"{i}{to_workspace_global_id}" if i > 0 else f"{to_workspace_global_id}" for i in range(i3_inst.nb_monitor)]
+        # We first need to update our list of spawned placeholders (Only the daemon keep the information in memory)
+        update_spawned_placeholder_windows_list(i3)
+        # Then we show the missing placeholders
+        show_missing_placeholders(i3_inst, new_childs_id)
 
-        # FIXME : Detect if there is a placeholder spawned, otherwise spawn it
-        #         THIS WILL FUCKUP THE DAEMON, ONLY THE DAEMON KNOW WHICH WINDOWS ARE SPAWNED.
-        #         THE DAEMON WILL RECREATE PLACEHOLDER ON FOCUS
-        #subprocess.popen('ps -aux | grep "i3-sensible-terminal --name \'empty_workspace_{}\'$" | wc -l')
 
-        #show_missing_placeholders(i3_inst, new_childs_id)
+
 

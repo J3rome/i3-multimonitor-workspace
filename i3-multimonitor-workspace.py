@@ -32,7 +32,7 @@ from i3ipc import Connection, Event
 from actions import rename_current_workspace, move_current_container_to_workspace
 from actions import do_workspace_back_and_forth, rename_current_workspace
 from ipc import create_placeholder_windows, show_placeholder_windows, focus_workspaces, kill_global_workspace, rewrite_workspace_names
-from ipc import show_missing_placeholders, update_spawned_placeholder_windows_count
+from ipc import show_missing_placeholders, update_spawned_placeholder_windows_list
 from misc import get_mouse_position, set_mouse_position, setup_exit_signal_handling, clear_all_placeholders
 from misc import get_pid_of_running_daemon, send_back_and_forth_signal_to_daemon, set_back_and_forth_handler
 from misc import set_rename_handler, send_rename_signal_to_daemon, read_workspace_names_from_file
@@ -145,8 +145,9 @@ def main(args):
         send_back_and_forth_signal_to_daemon(running_daemon_pid)
         exit(0)
 
+    # Show missing placeholders
     if args.missing:
-        update_spawned_placeholder_windows_count(i3)
+        update_spawned_placeholder_windows_list(i3)
         show_missing_placeholders(i3, existing_workspaces)
         exit(0)
 
