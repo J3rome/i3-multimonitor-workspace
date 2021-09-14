@@ -4,13 +4,19 @@ from misc import write_workspace_names_to_file
 
 # Placeholder windows handling
 def create_placeholder_windows(i3_inst, child_workspace_ids):
+    created = False
     create_placeholder_cmd = ""
     for workspace_id in child_workspace_ids:
         class_name = f"empty_workspace_{workspace_id}"
-        create_placeholder_cmd += f"exec --no-startup-id i3-sensible-terminal --name '{class_name}'; "
-        i3_inst.spawned_placeholders.append(class_name)
+        if class_name not in i3_inst.spawned_placeholders:
+            create_placeholder_cmd += f"exec --no-startup-id i3-sensible-terminal --name '{class_name}'; "
+            i3_inst.spawned_placeholders.append(class_name)
+            created = True
+            print(class_name)
 
     i3_inst.command(create_placeholder_cmd)
+
+    return created
 
 
 def show_placeholder_windows(i3_inst, child_workspace_ids):
@@ -129,9 +135,11 @@ def show_missing_placeholders(i3_inst, existing_workspaces):
     for global_id in global_ids:
         child_ids = [f'{i}{global_id}' if i > 0 else global_id for i in range(i3_inst.nb_monitor)]
 
-        create_placeholder_windows(i3_inst, child_ids)
+        created = create_placeholder_windows(i3_inst, child_ids)
 
-        # Need to wait for the placeholders to be spawned
-        time.sleep(0.25)
+        if created:
+            print("Waiting for ", child_ids)
+            # Need to wait for the placeholders to be spawned
+            time.sleep(0.25)
 
         show_placeholder_windows(i3_inst, child_ids)
